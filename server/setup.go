@@ -18,7 +18,7 @@ func (api *API) postSetup(c *gin.Context) {
 	var body postSetupBody
 	c.BindJSON(body)
 
-	_, err := api.Queries.CreateUser(*api.Ctx, database.CreateUserParams{
+	_, err := api.Queries.CreateUser(api.Ctx, database.CreateUserParams{
 		Name:     body.Name,
 		Username: body.Username,
 		Email:    body.Email,

@@ -10,7 +10,7 @@ import (
 )
 
 type API struct {
-	Ctx     *context.Context
+	Ctx     context.Context
 	Queries *database.Queries
 }
 
@@ -22,8 +22,8 @@ func main() {
 		panic("Error connecting to the database. Error: " + err.Error())
 	}
 
-	api := &API{
-		Ctx:     &ctx,
+	api := API{
+		Ctx:     ctx,
 		Queries: database.New(d),
 	}
 
