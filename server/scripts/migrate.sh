@@ -1,3 +1,3 @@
 #!/bin/bash
 
-migrate -path database/migrations/ -database "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable" -verbose up
+migrate -path database/migrations/ -database "$POSTGRES_DB_URL" -verbose up

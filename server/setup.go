@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
 	"net/http"
 
 	database "github.com/BrunoQuaresma/openticket/database/models"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type postSetupBody struct {
@@ -16,25 +14,17 @@ type postSetupBody struct {
 	Password string `json:"password"`
 }
 
-func postSetup(c *gin.Context) {
+func (api *API) postSetup(c *gin.Context) {
 	var body postSetupBody
 	c.BindJSON(body)
 
-	ctx := context.Background()
-
-	d, err := pgxpool.New(ctx, "user=user_name dbname=db_name sslmode=disable host=localhost port=5678")
-	if err != nil {
-		c.Status(http.StatusInternalServerError)
-		return
-	}
-
-	q := database.New(d)
-	_, err = q.CreateUser(ctx, database.CreateUserParams{
+	_, err := api.Queries.CreateUser(*api.Ctx, database.CreateUserParams{
 		Name:     body.Name,
 		Username: body.Username,
 		Email:    body.Email,
 		Hash:     body.Password,
 	})
+
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
