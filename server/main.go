@@ -6,10 +6,6 @@ import (
 
 func main() {
 	req := gin.Default()
-
-	req.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "ponga"})
-	})
-
+	req.POST("/setup", postSetup)
 	req.Run()
 }

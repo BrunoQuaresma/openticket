@@ -7,38 +7,51 @@ package database
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const listUsers = `-- name: ListUsers :many
-SELECT id, name, profile_picture_url, username, email, hash, created_at, updated_at FROM users
-ORDER BY name, username
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (name, username, email, hash, profile_picture_url)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, username, email, profile_picture_url, created_at, updated_at
 `
 
-func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, listUsers)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.ProfilePictureUrl,
-			&i.Username,
-			&i.Email,
-			&i.Hash,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+type CreateUserParams struct {
+	Name              string
+	Username          string
+	Email             string
+	Hash              string
+	ProfilePictureUrl pgtype.Text
+}
+
+type CreateUserRow struct {
+	ID                int32
+	Name              string
+	Username          string
+	Email             string
+	ProfilePictureUrl pgtype.Text
+	CreatedAt         pgtype.Timestamp
+	UpdatedAt         pgtype.Timestamp
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Name,
+		arg.Username,
+		arg.Email,
+		arg.Hash,
+		arg.ProfilePictureUrl,
+	)
+	var i CreateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Username,
+		&i.Email,
+		&i.ProfilePictureUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
