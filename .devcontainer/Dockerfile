@@ -6,14 +6,15 @@ FROM mcr.microsoft.com/devcontainers/go:1-1.22-bookworm
 
 # [Optional] Uncomment the next lines to use go get to install anything else you need
 USER vscode
-# RUN go get -x <your-dependency-or-tool>
-# USER root
-# RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
 # ZSH
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.1.5/zsh-in-docker.sh)" -- \
   -t robbyrussell \
   -p git
 
+# Migrate
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+# USER root
 # [Optional] Uncomment this line to install global node packages.
 # RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
