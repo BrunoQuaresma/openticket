@@ -16,6 +16,7 @@ type API struct {
 
 type Options struct {
 	DatabaseURL string
+	Debug       bool
 }
 
 func Start(options Options) *http.Server {
@@ -29,6 +30,10 @@ func Start(options Options) *http.Server {
 	api := API{
 		Ctx:     ctx,
 		Queries: database.New(d),
+	}
+
+	if !options.Debug {
+		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.Default()

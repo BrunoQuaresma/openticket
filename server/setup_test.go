@@ -8,9 +8,11 @@ import (
 )
 
 func TestExample(t *testing.T) {
-	c := testutils.NewTestDatabaseConfig()
-	c.Database = "setup-db"
-	stop := testutils.RunTestServer(c)
+	dbConf := testutils.NewTestDatabaseConfig()
+	dbConf.Database = "setup-db"
+	stop := testutils.RunTestServer(testutils.TestServerConfig{
+		Database: dbConf,
+	})
 	defer stop()
 	require.True(t, true)
 }

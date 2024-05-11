@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
@@ -25,26 +26,37 @@ func NewTestDatabaseConfig() TestDatabaseConfig {
 	}
 }
 
+type TestServerConfig struct {
+	Database TestDatabaseConfig
+	Debug    bool
+}
+
 type Stop func()
 
-func RunTestServer(dbConfig TestDatabaseConfig) Stop {
+func RunTestServer(c TestServerConfig) Stop {
+	logger := io.Discard
+	if c.Debug {
+		logger = os.Stdout
+	}
+
 	pg := embeddedpostgres.NewDatabase(
 		embeddedpostgres.DefaultConfig().
-			Port(dbConfig.Port).
-			Username(dbConfig.Username).
-			Password(dbConfig.Password).
-			Database(dbConfig.Database),
+			Port(c.Database.Port).
+			Username(c.Database.Username).
+			Password(c.Database.Password).
+			Database(c.Database.Database).
+			Logger(logger),
 	)
 	err := pg.Start()
 	if err != nil {
 		panic("error starting postgres: " + err.Error())
 	}
-	dbURL := "postgresql://" + dbConfig.Username + ":" + dbConfig.Password + "@localhost:" + fmt.Sprint(dbConfig.Port) + "/" + dbConfig.Database + "?sslmode=disable"
+	dbURL := "postgresql://" + c.Database.Username + ":" + c.Database.Password + "@localhost:" + fmt.Sprint(c.Database.Port) + "/" + c.Database.Database + "?sslmode=disable"
 
 	migrateCmd := exec.Command("./scripts/migrate.sh")
 	migrateCmd.Env = append(migrateCmd.Env, "POSTGRES_DB_URL="+dbURL)
-	migrateCmd.Stdout = os.Stdout
-	migrateCmd.Stderr = os.Stderr
+	migrateCmd.Stdout = logger
+	migrateCmd.Stderr = logger
 	err = migrateCmd.Run()
 	if err != nil {
 		pg.Stop()
@@ -53,6 +65,7 @@ func RunTestServer(dbConfig TestDatabaseConfig) Stop {
 
 	s := server.Start(server.Options{
 		DatabaseURL: dbURL,
+		Debug:       c.Debug,
 	})
 
 	return func() {
