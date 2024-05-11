@@ -69,8 +69,8 @@ func (testDB *TestDatabase) URL() string {
 	return "postgresql://" + testDB.Username + ":" + testDB.Password + "@localhost:" + fmt.Sprint(testDB.Port) + "/" + testDB.Database + "?sslmode=disable"
 }
 
-func NewTestDatabase() TestDatabase {
-	return TestDatabase{
+func NewTestDatabase() *TestDatabase {
+	return &TestDatabase{
 		Username: "postgres",
 		Password: "postgres",
 		Database: "postgres",

@@ -8,7 +8,8 @@ import (
 )
 
 func TestExample(t *testing.T) {
-	stop := testutils.RunTestServer(testutils.TestServerConfig{})
-	defer stop()
+	s := testutils.TestServer{}
+	s.Start()
+	defer s.Close()
 	require.True(t, true)
 }
