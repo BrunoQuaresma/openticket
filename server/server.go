@@ -31,25 +31,36 @@ func Start(options Options) *http.Server {
 		Ctx:     ctx,
 		Queries: database.New(d),
 	}
-
 	if !options.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
-
 	r := gin.Default()
-	r.POST("/setup", api.postSetup)
+	SetupRoutes(r, &api)
 
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":3000",
 		Handler: r,
 	}
-
 	go func() {
 		err = server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			panic("error starting server. " + err.Error())
 		}
 	}()
+	ready := make(chan bool, 1)
+	go func() {
+		var res *http.Response
+
+		for res == nil || res.StatusCode != http.StatusOK {
+			res, err = http.Get("http://localhost:3000/health")
+			if err != nil {
+				panic("error getting health check. " + err.Error())
+			}
+		}
+
+		ready <- true
+	}()
+	<-ready
 
 	return server
 }
