@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -70,10 +71,27 @@ func (testDB *TestDatabase) URL() string {
 }
 
 func NewTestDatabase() *TestDatabase {
+	port, err := getFreePort()
+	if err != nil {
+		panic("error getting free port: " + err.Error())
+	}
+
 	return &TestDatabase{
 		Username: "postgres",
 		Password: "postgres",
 		Database: "postgres",
-		Port:     5433,
+		Port:     uint32(port),
 	}
+}
+
+func getFreePort() (port int, err error) {
+	var a *net.TCPAddr
+	if a, err = net.ResolveTCPAddr("tcp", "localhost:0"); err == nil {
+		var l *net.TCPListener
+		if l, err = net.ListenTCP("tcp", a); err == nil {
+			defer l.Close()
+			return l.Addr().(*net.TCPAddr).Port, nil
+		}
+	}
+	return
 }
