@@ -2,27 +2,32 @@ package testutil
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"os"
 
 	"github.com/BrunoQuaresma/openticket/api"
 )
 
-type TestServer struct {
+type TestEnv struct {
 	Debug      bool
 	HTTPServer *http.Server
 	Database   *TestDatabase
 	Port       int
 }
 
-func (s *TestServer) Start() {
+func (s *TestEnv) Start() {
 	logger := io.Discard
 	if s.Debug {
 		logger = os.Stdout
 	}
 
-	s.Database = NewTestDatabase()
-	err := s.Database.Start(logger)
+	dbPort, err := getFreePort()
+	if err != nil {
+		panic("error getting free port: " + err.Error())
+	}
+	s.Database = NewTestDatabase(dbPort)
+	err = s.Database.Start(logger)
 	if err != nil {
 		panic("error starting test database: " + err.Error())
 	}
@@ -38,7 +43,19 @@ func (s *TestServer) Start() {
 	})
 }
 
-func (s *TestServer) Close() {
+func (s *TestEnv) Close() {
 	s.Database.Stop()
 	s.HTTPServer.Close()
+}
+
+func getFreePort() (port int, err error) {
+	var a *net.TCPAddr
+	if a, err = net.ResolveTCPAddr("tcp", "localhost:0"); err == nil {
+		var l *net.TCPListener
+		if l, err = net.ListenTCP("tcp", a); err == nil {
+			defer l.Close()
+			return l.Addr().(*net.TCPAddr).Port, nil
+		}
+	}
+	return
 }

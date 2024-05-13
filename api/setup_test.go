@@ -8,8 +8,8 @@ import (
 )
 
 func TestSetup(t *testing.T) {
-	s := testutil.TestServer{}
-	s.Start()
-	defer s.Close()
+	tEnv := testutil.TestEnv{}
+	tEnv.Start()
+	defer tEnv.Close()
 	require.True(t, true)
 }

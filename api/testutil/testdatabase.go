@@ -69,12 +69,7 @@ func (testDB *TestDatabase) URL() string {
 	return "postgresql://" + testDB.Username + ":" + testDB.Password + "@localhost:" + fmt.Sprint(testDB.Port) + "/" + testDB.Database + "?sslmode=disable"
 }
 
-func NewTestDatabase() *TestDatabase {
-	port, err := getFreePort()
-	if err != nil {
-		panic("error getting free port: " + err.Error())
-	}
-
+func NewTestDatabase(port int) *TestDatabase {
 	return &TestDatabase{
 		Username: "postgres",
 		Password: "postgres",

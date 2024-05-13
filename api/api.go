@@ -37,7 +37,7 @@ func Start(options Options) *http.Server {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.Default()
-	SetupRoutes(r, &api)
+	setupRoutes(r, &api)
 
 	server := &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
@@ -65,4 +65,9 @@ func Start(options Options) *http.Server {
 	<-ready
 
 	return server
+}
+
+func setupRoutes(r *gin.Engine, api *API) {
+	r.GET("/health", api.getHealth)
+	r.POST("/setup", api.postSetup)
 }
