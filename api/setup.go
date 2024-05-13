@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/models"
+	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
 )
 

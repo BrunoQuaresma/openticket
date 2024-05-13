@@ -12,8 +12,9 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -t robbyrussell \
   -p git
 
-# Migrate
+# DB Tools
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
 # USER root
 # [Optional] Uncomment this line to install global node packages.
