@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	database "github.com/BrunoQuaresma/openticket/database/models"
@@ -17,6 +18,7 @@ type API struct {
 type Options struct {
 	DatabaseURL string
 	Debug       bool
+	Port        int
 }
 
 func Start(options Options) *http.Server {
@@ -38,7 +40,7 @@ func Start(options Options) *http.Server {
 	SetupRoutes(r, &api)
 
 	server := &http.Server{
-		Addr:    ":3000",
+		Addr:    ":" + fmt.Sprint(options.Port),
 		Handler: r,
 	}
 	go func() {
@@ -52,7 +54,7 @@ func Start(options Options) *http.Server {
 		var res *http.Response
 
 		for res == nil || res.StatusCode != http.StatusOK {
-			res, err = http.Get("http://localhost:3000/health")
+			res, err = http.Get("http://localhost" + server.Addr + "/health")
 			if err != nil {
 				panic("error getting health check. " + err.Error())
 			}

@@ -12,6 +12,7 @@ type TestServer struct {
 	Debug      bool
 	HTTPServer *http.Server
 	Database   *TestDatabase
+	Port       int
 }
 
 func (s *TestServer) Start() {
@@ -26,9 +27,14 @@ func (s *TestServer) Start() {
 		panic("error starting test database: " + err.Error())
 	}
 
+	s.Port, err = getFreePort()
+	if err != nil {
+		panic("error getting free port: " + err.Error())
+	}
 	s.HTTPServer = server.Start(server.Options{
 		DatabaseURL: s.Database.URL(),
 		Debug:       s.Debug,
+		Port:        s.Port,
 	})
 }
 

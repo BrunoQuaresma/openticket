@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExample(t *testing.T) {
+func TestSetup(t *testing.T) {
 	s := testutils.TestServer{}
 	s.Start()
 	defer s.Close()
