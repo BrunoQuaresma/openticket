@@ -1,9 +1,9 @@
-package server
+package api
 
 import (
 	"net/http"
 
-	database "github.com/BrunoQuaresma/openticket/database/models"
+	database "github.com/BrunoQuaresma/openticket/api/database/models"
 	"github.com/gin-gonic/gin"
 )
 

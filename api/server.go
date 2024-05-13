@@ -1,11 +1,11 @@
-package server
+package api
 
 import (
 	"context"
 	"fmt"
 	"net/http"
 
-	database "github.com/BrunoQuaresma/openticket/database/models"
+	database "github.com/BrunoQuaresma/openticket/api/database/models"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )

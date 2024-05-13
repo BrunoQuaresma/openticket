@@ -1,11 +1,11 @@
-package testutils
+package test
 
 import (
 	"io"
 	"net/http"
 	"os"
 
-	server "github.com/BrunoQuaresma/openticket"
+	"github.com/BrunoQuaresma/openticket/api"
 )
 
 type TestServer struct {
@@ -31,7 +31,7 @@ func (s *TestServer) Start() {
 	if err != nil {
 		panic("error getting free port: " + err.Error())
 	}
-	s.HTTPServer = server.Start(server.Options{
+	s.HTTPServer = api.Start(api.Options{
 		DatabaseURL: s.Database.URL(),
 		Debug:       s.Debug,
 		Port:        s.Port,
