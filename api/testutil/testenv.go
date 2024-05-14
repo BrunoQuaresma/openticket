@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ type TestEnv struct {
 	HTTPServer *http.Server
 	Database   *TestDatabase
 	Port       int
+	URL        string
 }
 
 func (s *TestEnv) Start() {
@@ -41,6 +43,7 @@ func (s *TestEnv) Start() {
 		Debug:       s.Debug,
 		Port:        s.Port,
 	})
+	s.URL = "http://localhost:" + fmt.Sprint(s.Port)
 }
 
 func (s *TestEnv) Close() {

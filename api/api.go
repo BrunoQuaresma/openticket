@@ -21,6 +21,15 @@ type Options struct {
 	Port        int
 }
 
+type ValidationError struct {
+	Field     string `json:"field"`
+	Validator string `json:"validator"`
+}
+
+type Response[T any] struct {
+	Data T `json:"data"`
+}
+
 func Start(options Options) *http.Server {
 	ctx := context.Background()
 
