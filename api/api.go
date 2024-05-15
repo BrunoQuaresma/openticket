@@ -4,15 +4,19 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type API struct {
-	Ctx     context.Context
-	Queries *database.Queries
+	Context  context.Context
+	Queries  *database.Queries
+	validate *validator.Validate
 }
 
 type Options struct {
@@ -38,15 +42,30 @@ func Start(options Options) *http.Server {
 		panic("error connecting to the database. " + err.Error())
 	}
 
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+
+		if name == "-" {
+			return ""
+		}
+
+		return name
+	})
+
 	api := API{
-		Ctx:     ctx,
-		Queries: database.New(d),
+		Context:  ctx,
+		Queries:  database.New(d),
+		validate: validate,
 	}
+
 	if !options.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.Default()
-	setupRoutes(r, &api)
+
+	r.GET("/health", api.getHealth)
+	r.POST("/setup", api.postSetup)
 
 	server := &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
@@ -76,7 +95,23 @@ func Start(options Options) *http.Server {
 	return server
 }
 
-func setupRoutes(r *gin.Engine, api *API) {
-	r.GET("/health", api.getHealth)
-	r.POST("/setup", api.postSetup)
+func (api *API) BodyAsJSON(body any, c *gin.Context) {
+	c.BindJSON(body)
+	err := api.validate.Struct(body)
+
+	if err == nil {
+		return
+	}
+
+	validationErrors := err.(validator.ValidationErrors)
+	apiErrors := make([]ValidationError, 0, len((validationErrors)))
+	for _, validationError := range validationErrors {
+		apiErrors = append(apiErrors, ValidationError{
+			Field:     validationError.Field(),
+			Validator: validationError.Tag(),
+		})
+	}
+
+	c.JSON(http.StatusBadRequest, gin.H{"data": apiErrors})
+	c.Done()
 }

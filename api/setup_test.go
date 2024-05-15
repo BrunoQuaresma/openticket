@@ -17,7 +17,6 @@ func TestSetup(t *testing.T) {
 	defer tEnv.Close()
 
 	body := []byte(`{}`)
-
 	r, err := http.Post(tEnv.URL+"/setup", "application/json", bytes.NewBuffer(body))
 	require.NoError(t, err, "error making request")
 
