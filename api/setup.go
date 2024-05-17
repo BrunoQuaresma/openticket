@@ -7,15 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type postSetupRequest struct {
-	Name     string `json:"name" validate:"required"`
-	Username string `json:"username" validate:"required"`
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
+type PostSetupRequest struct {
+	Name     string `json:"name" validate:"required,min=3,max=50"`
+	Username string `json:"username" validate:"required,min=3,max=15"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 func (api *API) postSetup(c *gin.Context) {
-	var body postSetupRequest
+	var body PostSetupRequest
 	api.BodyAsJSON(&body, c)
 
 	_, err := api.Queries.CreateUser(api.Context, database.CreateUserParams{
