@@ -40,7 +40,7 @@ func (s *TestEnv) Start() {
 	}
 	s.HTTPServer = api.Start(api.Options{
 		DatabaseURL: s.Database.URL(),
-		Debug:       s.Debug,
+		Mode:        api.TestMode,
 		Port:        s.Port,
 	})
 	s.URL = "http://localhost:" + fmt.Sprint(s.Port)

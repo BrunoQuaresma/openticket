@@ -19,10 +19,16 @@ type API struct {
 	validate *validator.Validate
 }
 
+const (
+	TestMode       = "test"
+	DevMode        = "dev"
+	ProductionMode = "production"
+)
+
 type Options struct {
 	DatabaseURL string
-	Debug       bool
 	Port        int
+	Mode        string
 }
 
 type ValidationError struct {
@@ -59,10 +65,18 @@ func Start(options Options) *http.Server {
 		validate: validate,
 	}
 
-	if !options.Debug {
+	var r *gin.Engine
+	switch options.Mode {
+	case TestMode:
+		gin.SetMode(gin.TestMode)
+		r = gin.New()
+	case DevMode:
+		gin.SetMode(gin.DebugMode)
+		r = gin.Default()
+	default:
 		gin.SetMode(gin.ReleaseMode)
+		r = gin.Default()
 	}
-	r := gin.Default()
 
 	r.GET("/health", api.getHealth)
 	r.POST("/setup", api.postSetup)
