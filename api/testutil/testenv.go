@@ -1,26 +1,22 @@
 package testutil
 
 import (
-	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"os"
 
 	"github.com/BrunoQuaresma/openticket/api"
 )
 
 type TestEnv struct {
-	Debug      bool
-	HTTPServer *http.Server
-	Database   *TestDatabase
-	Port       int
-	URL        string
+	Debug    bool
+	Database *TestDatabase
+	API      *api.API
 }
 
-func (s *TestEnv) Start() {
+func (tEnv *TestEnv) Start() {
 	logger := io.Discard
-	if s.Debug {
+	if tEnv.Debug {
 		logger = os.Stdout
 	}
 
@@ -28,27 +24,30 @@ func (s *TestEnv) Start() {
 	if err != nil {
 		panic("error getting free port: " + err.Error())
 	}
-	s.Database = NewTestDatabase(dbPort)
-	err = s.Database.Start(logger)
+	tEnv.Database = NewTestDatabase(dbPort)
+	err = tEnv.Database.Start(logger)
 	if err != nil {
 		panic("error starting test database: " + err.Error())
 	}
 
-	s.Port, err = getFreePort()
+	port, err := getFreePort()
 	if err != nil {
 		panic("error getting free port: " + err.Error())
 	}
-	s.HTTPServer = api.Start(api.Options{
-		DatabaseURL: s.Database.URL(),
+	tEnv.API = api.Start(api.Options{
+		DatabaseURL: tEnv.Database.URL(),
 		Mode:        api.TestMode,
-		Port:        s.Port,
+		Port:        port,
 	})
-	s.URL = "http://localhost:" + fmt.Sprint(s.Port)
 }
 
-func (s *TestEnv) Close() {
-	s.Database.Stop()
-	s.HTTPServer.Close()
+func (tEnv *TestEnv) Close() {
+	tEnv.Database.Stop()
+	tEnv.API.HTTPServer.Close()
+}
+
+func (tEnv *TestEnv) URL() string {
+	return "http://localhost" + tEnv.API.HTTPServer.Addr
 }
 
 func getFreePort() (port int, err error) {

@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
+	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func TestSetupValidation(t *testing.T) {
+func TestSetup_Validation(t *testing.T) {
 	tEnv := testutil.TestEnv{}
 	tEnv.Start()
 	defer tEnv.Close()
@@ -31,14 +33,14 @@ func TestSetupValidation(t *testing.T) {
 	})
 
 	t.Run("valid email", func(t *testing.T) {
-		body := api.PostSetupRequest{
+		req := api.PostSetupRequest{
 			Name:     gofakeit.Name(),
 			Username: gofakeit.Username(),
 			Email:    "invalid-email",
 			Password: fakePassword(),
 		}
 		var apiRes api.Response[[]api.ValidationError]
-		r, err := postSetup(&tEnv, body, &apiRes)
+		r, err := postSetup(&tEnv, req, &apiRes)
 		require.NoError(t, err, "error making request")
 
 		require.Equal(t, http.StatusBadRequest, r.StatusCode)
@@ -46,14 +48,14 @@ func TestSetupValidation(t *testing.T) {
 	})
 
 	t.Run("valid password", func(t *testing.T) {
-		body := api.PostSetupRequest{
+		req := api.PostSetupRequest{
 			Name:     gofakeit.Name(),
 			Username: gofakeit.Username(),
 			Email:    gofakeit.Email(),
 			Password: "no8char",
 		}
 		var apiRes api.Response[[]api.ValidationError]
-		r, err := postSetup(&tEnv, body, &apiRes)
+		r, err := postSetup(&tEnv, req, &apiRes)
 		require.NoError(t, err, "error making request")
 
 		require.Equal(t, http.StatusBadRequest, r.StatusCode)
@@ -61,13 +63,44 @@ func TestSetupValidation(t *testing.T) {
 	})
 }
 
-func postSetup(tEnv *testutil.TestEnv, body api.PostSetupRequest, res any) (*http.Response, error) {
-	b, err := json.Marshal(body)
+func TestSetup(t *testing.T) {
+	tEnv := testutil.TestEnv{}
+	tEnv.Start()
+	defer tEnv.Close()
+
+	req := api.PostSetupRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Password: fakePassword(),
+	}
+	r, err := postSetup(&tEnv, req, nil)
+	require.NoError(t, err, "error making the first request")
+	require.Equal(t, http.StatusCreated, r.StatusCode)
+
+	firstUser, err := tEnv.API.Queries.GetUserByEmail(tEnv.API.Context, req.Email)
+	require.NoError(t, err, "error getting the first user")
+	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(firstUser.Hash), []byte(req.Password)), "user password should be hashed")
+	require.Equal(t, database.RoleAdmin, firstUser.Role, "first user should be admin")
+
+	req = api.PostSetupRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Password: fakePassword(),
+	}
+	r, err = postSetup(&tEnv, req, nil)
+	require.NoError(t, err, "error making the second request")
+	require.Equal(t, http.StatusNotFound, r.StatusCode, "setup should return 404 if it was already done")
+}
+
+func postSetup(tEnv *testutil.TestEnv, req api.PostSetupRequest, res any) (*http.Response, error) {
+	b, err := json.Marshal(req)
 	if err != nil {
 		panic(err)
 	}
 
-	r, err := http.Post(tEnv.URL+"/setup", "application/json", bytes.NewBuffer(b))
+	r, err := http.Post(tEnv.URL()+"/setup", "application/json", bytes.NewBuffer(b))
 	if err != nil {
 		return nil, err
 	}

@@ -7,16 +7,18 @@ import (
 	"reflect"
 	"strings"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
+	sqlc "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type API struct {
-	Context  context.Context
-	Queries  *database.Queries
-	validate *validator.Validate
+	Context    context.Context
+	Queries    *sqlc.Queries
+	HTTPServer *http.Server
+	Database   *pgxpool.Pool
+	validate   *validator.Validate
 }
 
 const (
@@ -40,10 +42,10 @@ type Response[T any] struct {
 	Data T `json:"data"`
 }
 
-func Start(options Options) *http.Server {
+func Start(options Options) *API {
 	ctx := context.Background()
 
-	d, err := pgxpool.New(ctx, options.DatabaseURL)
+	db, err := pgxpool.New(ctx, options.DatabaseURL)
 	if err != nil {
 		panic("error connecting to the database. " + err.Error())
 	}
@@ -59,10 +61,11 @@ func Start(options Options) *http.Server {
 		return name
 	})
 
-	api := API{
+	api := &API{
 		Context:  ctx,
-		Queries:  database.New(d),
+		Queries:  sqlc.New(db),
 		validate: validate,
+		Database: db,
 	}
 
 	var r *gin.Engine
@@ -81,12 +84,12 @@ func Start(options Options) *http.Server {
 	r.GET("/health", api.getHealth)
 	r.POST("/setup", api.postSetup)
 
-	server := &http.Server{
+	api.HTTPServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
 		Handler: r,
 	}
 	go func() {
-		err = server.ListenAndServe()
+		err = api.HTTPServer.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			panic("error starting server. " + err.Error())
 		}
@@ -96,7 +99,7 @@ func Start(options Options) *http.Server {
 		var res *http.Response
 
 		for res == nil || res.StatusCode != http.StatusOK {
-			res, err = http.Get("http://localhost" + server.Addr + "/health")
+			res, err = http.Get("http://localhost" + api.HTTPServer.Addr + "/health")
 			if err != nil {
 				panic("error getting health check. " + err.Error())
 			}
@@ -106,12 +109,12 @@ func Start(options Options) *http.Server {
 	}()
 	<-ready
 
-	return server
+	return api
 }
 
-func (api *API) BodyAsJSON(body any, c *gin.Context) {
-	c.BindJSON(body)
-	err := api.validate.Struct(body)
+func (api *API) BodyAsJSON(req any, c *gin.Context) {
+	c.BindJSON(req)
+	err := api.validate.Struct(req)
 
 	if err == nil {
 		return

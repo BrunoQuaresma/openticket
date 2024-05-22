@@ -5,6 +5,7 @@ import (
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type PostSetupRequest struct {
@@ -15,20 +16,47 @@ type PostSetupRequest struct {
 }
 
 func (api *API) postSetup(c *gin.Context) {
-	var body PostSetupRequest
-	api.BodyAsJSON(&body, c)
+	var req PostSetupRequest
+	api.BodyAsJSON(&req, c)
 
-	_, err := api.Queries.CreateUser(api.Context, database.CreateUserParams{
-		Name:     body.Name,
-		Username: body.Username,
-		Email:    body.Email,
-		Hash:     body.Password,
-	})
+	tx, err := api.Database.Begin(api.Context)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	defer tx.Rollback(api.Context)
+
+	qtx := api.Queries.WithTx(tx)
+	count, err := qtx.CountUsers(api.Context)
 
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	c.Status(http.StatusOK)
+	if count > 0 {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	h, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	_, err = api.Queries.CreateUser(api.Context, database.CreateUserParams{
+		Name:     req.Name,
+		Username: req.Username,
+		Email:    req.Email,
+		Hash:     string(h),
+		Role:     "admin",
+	})
+
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusCreated)
 }
