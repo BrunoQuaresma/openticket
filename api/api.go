@@ -16,9 +16,9 @@ import (
 type API struct {
 	Context    context.Context
 	Queries    *sqlc.Queries
-	HTTPServer *http.Server
 	Database   *pgxpool.Pool
 	validate   *validator.Validate
+	httpServer *http.Server
 }
 
 const (
@@ -84,12 +84,12 @@ func Start(options Options) *API {
 	r.GET("/health", api.getHealth)
 	r.POST("/setup", api.postSetup)
 
-	api.HTTPServer = &http.Server{
+	api.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
 		Handler: r,
 	}
 	go func() {
-		err = api.HTTPServer.ListenAndServe()
+		err = api.httpServer.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			panic("error starting server. " + err.Error())
 		}
@@ -99,7 +99,7 @@ func Start(options Options) *API {
 		var res *http.Response
 
 		for res == nil || res.StatusCode != http.StatusOK {
-			res, err = http.Get("http://localhost" + api.HTTPServer.Addr + "/health")
+			res, err = http.Get("http://localhost" + api.httpServer.Addr + "/health")
 			if err != nil {
 				panic("error getting health check. " + err.Error())
 			}
@@ -110,6 +110,14 @@ func Start(options Options) *API {
 	<-ready
 
 	return api
+}
+
+func (api *API) Close() {
+	api.httpServer.Close()
+}
+
+func (api *API) Addr() string {
+	return api.httpServer.Addr
 }
 
 func (api *API) BodyAsJSON(req any, c *gin.Context) {

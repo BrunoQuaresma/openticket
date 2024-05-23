@@ -43,11 +43,11 @@ func (tEnv *TestEnv) Start() {
 
 func (tEnv *TestEnv) Close() {
 	tEnv.Database.Stop()
-	tEnv.API.HTTPServer.Close()
+	tEnv.API.Close()
 }
 
 func (tEnv *TestEnv) URL() string {
-	return "http://localhost" + tEnv.API.HTTPServer.Addr
+	return "http://localhost" + tEnv.API.Addr()
 }
 
 func getFreePort() (port int, err error) {
