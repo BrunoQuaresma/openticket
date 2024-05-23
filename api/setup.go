@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
@@ -19,15 +20,16 @@ func (api *API) postSetup(c *gin.Context) {
 	var req PostSetupRequest
 	api.BodyAsJSON(&req, c)
 
-	tx, err := api.Database.Begin(api.Context)
+	ctx := context.Background()
+	tx, err := api.Database.Begin(ctx)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	defer tx.Rollback(api.Context)
+	defer tx.Rollback(ctx)
 
 	qtx := api.Queries.WithTx(tx)
-	count, err := qtx.CountUsers(api.Context)
+	count, err := qtx.CountUsers(ctx)
 
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -45,7 +47,7 @@ func (api *API) postSetup(c *gin.Context) {
 		return
 	}
 
-	_, err = api.Queries.CreateUser(api.Context, database.CreateUserParams{
+	_, err = api.Queries.CreateUser(ctx, database.CreateUserParams{
 		Name:     req.Name,
 		Username: req.Username,
 		Email:    req.Email,

@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -78,7 +79,8 @@ func TestSetup(t *testing.T) {
 	require.NoError(t, err, "error making the first request")
 	require.Equal(t, http.StatusCreated, r.StatusCode)
 
-	firstUser, err := tEnv.API.Queries.GetUserByEmail(tEnv.API.Context, req.Email)
+	ctx := context.Background()
+	firstUser, err := tEnv.API.Queries.GetUserByEmail(ctx, req.Email)
 	require.NoError(t, err, "error getting the first user")
 	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(firstUser.Hash), []byte(req.Password)), "user password should be hashed")
 	require.Equal(t, database.RoleAdmin, firstUser.Role, "first user should be admin")

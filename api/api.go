@@ -14,7 +14,6 @@ import (
 )
 
 type API struct {
-	Context    context.Context
 	Queries    *sqlc.Queries
 	Database   *pgxpool.Pool
 	validate   *validator.Validate
@@ -62,7 +61,6 @@ func Start(options Options) *API {
 	})
 
 	api := &API{
-		Context:  ctx,
 		Queries:  sqlc.New(db),
 		validate: validate,
 		Database: db,
