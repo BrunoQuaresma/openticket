@@ -11,7 +11,7 @@ import (
 type TestEnv struct {
 	Debug    bool
 	Database *TestDatabase
-	API      *api.API
+	Server   *api.Server
 }
 
 func (tEnv *TestEnv) Start() {
@@ -34,7 +34,7 @@ func (tEnv *TestEnv) Start() {
 	if err != nil {
 		panic("error getting free port: " + err.Error())
 	}
-	tEnv.API = api.Start(api.Options{
+	tEnv.Server = api.Start(api.Options{
 		DatabaseURL: tEnv.Database.URL(),
 		Mode:        api.TestMode,
 		Port:        port,
@@ -43,11 +43,11 @@ func (tEnv *TestEnv) Start() {
 
 func (tEnv *TestEnv) Close() {
 	tEnv.Database.Stop()
-	tEnv.API.Close()
+	tEnv.Server.Close()
 }
 
 func (tEnv *TestEnv) URL() string {
-	return "http://localhost" + tEnv.API.Addr()
+	return "http://localhost" + tEnv.Server.Addr()
 }
 
 func getFreePort() (port int, err error) {

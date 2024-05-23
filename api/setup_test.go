@@ -80,7 +80,7 @@ func TestSetup(t *testing.T) {
 	require.Equal(t, http.StatusCreated, r.StatusCode)
 
 	ctx := context.Background()
-	firstUser, err := tEnv.API.Queries.GetUserByEmail(ctx, req.Email)
+	firstUser, err := tEnv.Server.Queries.GetUserByEmail(ctx, req.Email)
 	require.NoError(t, err, "error getting the first user")
 	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(firstUser.Hash), []byte(req.Password)), "user password should be hashed")
 	require.Equal(t, database.RoleAdmin, firstUser.Role, "first user should be admin")

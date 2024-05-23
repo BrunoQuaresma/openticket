@@ -16,19 +16,19 @@ type PostSetupRequest struct {
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-func (api *API) postSetup(c *gin.Context) {
+func (server *Server) postSetup(c *gin.Context) {
 	var req PostSetupRequest
-	api.BodyAsJSON(&req, c)
+	server.BodyAsJSON(&req, c)
 
 	ctx := context.Background()
-	tx, err := api.Database.Begin(ctx)
+	tx, err := server.BeginTX(ctx)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	defer tx.Rollback(ctx)
 
-	qtx := api.Queries.WithTx(tx)
+	qtx := server.Queries.WithTx(tx)
 	count, err := qtx.CountUsers(ctx)
 
 	if err != nil {
@@ -47,7 +47,7 @@ func (api *API) postSetup(c *gin.Context) {
 		return
 	}
 
-	_, err = api.Queries.CreateUser(ctx, database.CreateUserParams{
+	_, err = server.Queries.CreateUser(ctx, database.CreateUserParams{
 		Name:     req.Name,
 		Username: req.Username,
 		Email:    req.Email,

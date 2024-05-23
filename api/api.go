@@ -10,12 +10,13 @@ import (
 	sqlc "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type API struct {
+type Server struct {
 	Queries    *sqlc.Queries
-	Database   *pgxpool.Pool
+	database   *pgxpool.Pool
 	validate   *validator.Validate
 	httpServer *http.Server
 }
@@ -41,7 +42,7 @@ type Response[T any] struct {
 	Data T `json:"data"`
 }
 
-func Start(options Options) *API {
+func Start(options Options) *Server {
 	ctx := context.Background()
 
 	db, err := pgxpool.New(ctx, options.DatabaseURL)
@@ -60,10 +61,10 @@ func Start(options Options) *API {
 		return name
 	})
 
-	api := &API{
+	server := &Server{
 		Queries:  sqlc.New(db),
 		validate: validate,
-		Database: db,
+		database: db,
 	}
 
 	var r *gin.Engine
@@ -79,15 +80,15 @@ func Start(options Options) *API {
 		r = gin.Default()
 	}
 
-	r.GET("/health", api.getHealth)
-	r.POST("/setup", api.postSetup)
+	r.GET("/health", server.getHealth)
+	r.POST("/setup", server.postSetup)
 
-	api.httpServer = &http.Server{
+	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
 		Handler: r,
 	}
 	go func() {
-		err = api.httpServer.ListenAndServe()
+		err = server.httpServer.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			panic("error starting server. " + err.Error())
 		}
@@ -97,7 +98,7 @@ func Start(options Options) *API {
 		var res *http.Response
 
 		for res == nil || res.StatusCode != http.StatusOK {
-			res, err = http.Get("http://localhost" + api.httpServer.Addr + "/health")
+			res, err = http.Get("http://localhost" + server.Addr() + "/health")
 			if err != nil {
 				panic("error getting health check. " + err.Error())
 			}
@@ -107,18 +108,22 @@ func Start(options Options) *API {
 	}()
 	<-ready
 
-	return api
+	return server
 }
 
-func (api *API) Close() {
+func (api *Server) Close() {
 	api.httpServer.Close()
 }
 
-func (api *API) Addr() string {
+func (api *Server) Addr() string {
 	return api.httpServer.Addr
 }
 
-func (api *API) BodyAsJSON(req any, c *gin.Context) {
+func (api *Server) BeginTX(ctx context.Context) (pgx.Tx, error) {
+	return api.database.Begin(ctx)
+}
+
+func (api *Server) BodyAsJSON(req any, c *gin.Context) {
 	c.BindJSON(req)
 	err := api.validate.Struct(req)
 
