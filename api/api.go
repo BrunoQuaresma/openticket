@@ -82,6 +82,7 @@ func Start(options Options) *Server {
 
 	r.GET("/health", server.health)
 	r.POST("/setup", server.setup)
+	r.POST("/tickets", server.createTicket)
 
 	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
