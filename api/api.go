@@ -123,7 +123,7 @@ func (api *Server) BeginTX(ctx context.Context) (pgx.Tx, error) {
 	return api.database.Begin(ctx)
 }
 
-func (api *Server) BodyAsJSON(req any, c *gin.Context) {
+func (api *Server) Parse(req any, c *gin.Context) {
 	c.BindJSON(req)
 	err := api.validate.Struct(req)
 

@@ -18,7 +18,7 @@ type SetupRequest struct {
 
 func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
-	server.BodyAsJSON(&req, c)
+	server.Parse(&req, c)
 
 	ctx := context.Background()
 	tx, err := server.BeginTX(ctx)
