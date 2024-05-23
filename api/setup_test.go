@@ -21,7 +21,7 @@ func TestSetup_Validation(t *testing.T) {
 	defer tEnv.Close()
 
 	t.Run("required fields", func(t *testing.T) {
-		var body api.PostSetupRequest
+		var body api.SetupRequest
 		var apiRes api.Response[[]api.ValidationError]
 		r, err := postSetup(&tEnv, body, &apiRes)
 		require.NoError(t, err, "error making request")
@@ -34,7 +34,7 @@ func TestSetup_Validation(t *testing.T) {
 	})
 
 	t.Run("valid email", func(t *testing.T) {
-		req := api.PostSetupRequest{
+		req := api.SetupRequest{
 			Name:     gofakeit.Name(),
 			Username: gofakeit.Username(),
 			Email:    "invalid-email",
@@ -49,7 +49,7 @@ func TestSetup_Validation(t *testing.T) {
 	})
 
 	t.Run("valid password", func(t *testing.T) {
-		req := api.PostSetupRequest{
+		req := api.SetupRequest{
 			Name:     gofakeit.Name(),
 			Username: gofakeit.Username(),
 			Email:    gofakeit.Email(),
@@ -69,7 +69,7 @@ func TestSetup(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 
-	req := api.PostSetupRequest{
+	req := api.SetupRequest{
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
 		Email:    gofakeit.Email(),
@@ -85,7 +85,7 @@ func TestSetup(t *testing.T) {
 	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(firstUser.Hash), []byte(req.Password)), "user password should be hashed")
 	require.Equal(t, database.RoleAdmin, firstUser.Role, "first user should be admin")
 
-	req = api.PostSetupRequest{
+	req = api.SetupRequest{
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
 		Email:    gofakeit.Email(),
@@ -96,7 +96,7 @@ func TestSetup(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, r.StatusCode, "setup should return 404 if it was already done")
 }
 
-func postSetup(tEnv *testutil.TestEnv, req api.PostSetupRequest, res any) (*http.Response, error) {
+func postSetup(tEnv *testutil.TestEnv, req api.SetupRequest, res any) (*http.Response, error) {
 	b, err := json.Marshal(req)
 	if err != nil {
 		panic(err)

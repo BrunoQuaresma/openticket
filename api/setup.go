@@ -9,15 +9,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type PostSetupRequest struct {
+type SetupRequest struct {
 	Name     string `json:"name" validate:"required,min=3,max=50"`
 	Username string `json:"username" validate:"required,min=3,max=15"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-func (server *Server) postSetup(c *gin.Context) {
-	var req PostSetupRequest
+func (server *Server) setup(c *gin.Context) {
+	var req SetupRequest
 	server.BodyAsJSON(&req, c)
 
 	ctx := context.Background()

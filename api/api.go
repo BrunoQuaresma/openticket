@@ -80,8 +80,8 @@ func Start(options Options) *Server {
 		r = gin.Default()
 	}
 
-	r.GET("/health", server.getHealth)
-	r.POST("/setup", server.postSetup)
+	r.GET("/health", server.health)
+	r.POST("/setup", server.setup)
 
 	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
