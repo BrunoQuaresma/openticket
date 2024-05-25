@@ -9,7 +9,10 @@ require (
 	github.com/stretchr/testify v1.9.0
 )
 
-require github.com/google/go-cmp v0.6.0 // indirect
+require (
+	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+)
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.0.3

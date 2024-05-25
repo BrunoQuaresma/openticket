@@ -1,9 +1,7 @@
 package api_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -21,16 +19,15 @@ func TestSetup_Validation(t *testing.T) {
 	defer tEnv.Close()
 
 	t.Run("required fields", func(t *testing.T) {
-		var body api.SetupRequest
-		var apiRes api.Response[[]api.ValidationError]
-		r, err := postSetup(&tEnv, body, &apiRes)
+		var req api.SetupRequest
+		r, err := tEnv.SDK().Setup(req)
 		require.NoError(t, err, "error making request")
 
 		require.Equal(t, http.StatusBadRequest, r.StatusCode)
-		require.True(t, testutil.HasValidationError(apiRes.Data, "name", "required"))
-		require.True(t, testutil.HasValidationError(apiRes.Data, "username", "required"))
-		require.True(t, testutil.HasValidationError(apiRes.Data, "email", "required"))
-		require.True(t, testutil.HasValidationError(apiRes.Data, "password", "required"))
+		require.True(t, testutil.HasValidationError(r, "name", "required"))
+		require.True(t, testutil.HasValidationError(r, "username", "required"))
+		require.True(t, testutil.HasValidationError(r, "email", "required"))
+		require.True(t, testutil.HasValidationError(r, "password", "required"))
 	})
 
 	t.Run("valid email", func(t *testing.T) {
@@ -40,12 +37,11 @@ func TestSetup_Validation(t *testing.T) {
 			Email:    "invalid-email",
 			Password: fakePassword(),
 		}
-		var apiRes api.Response[[]api.ValidationError]
-		r, err := postSetup(&tEnv, req, &apiRes)
+		r, err := tEnv.SDK().Setup(req)
 		require.NoError(t, err, "error making request")
 
 		require.Equal(t, http.StatusBadRequest, r.StatusCode)
-		require.True(t, testutil.HasValidationError(apiRes.Data, "email", "email"))
+		require.True(t, testutil.HasValidationError(r, "email", "email"))
 	})
 
 	t.Run("valid password", func(t *testing.T) {
@@ -55,12 +51,12 @@ func TestSetup_Validation(t *testing.T) {
 			Email:    gofakeit.Email(),
 			Password: "no8char",
 		}
-		var apiRes api.Response[[]api.ValidationError]
-		r, err := postSetup(&tEnv, req, &apiRes)
+
+		r, err := tEnv.SDK().Setup(req)
 		require.NoError(t, err, "error making request")
 
 		require.Equal(t, http.StatusBadRequest, r.StatusCode)
-		require.True(t, testutil.HasValidationError(apiRes.Data, "password", "min"))
+		require.True(t, testutil.HasValidationError(r, "password", "min"))
 	})
 }
 
@@ -68,6 +64,7 @@ func TestSetup(t *testing.T) {
 	tEnv := testutil.TestEnv{}
 	tEnv.Start()
 	defer tEnv.Close()
+	sdk := tEnv.SDK()
 
 	req := api.SetupRequest{
 		Name:     gofakeit.Name(),
@@ -75,14 +72,14 @@ func TestSetup(t *testing.T) {
 		Email:    gofakeit.Email(),
 		Password: fakePassword(),
 	}
-	r, err := postSetup(&tEnv, req, nil)
+	r, err := sdk.Setup(req)
 	require.NoError(t, err, "error making the first request")
-	require.Equal(t, http.StatusCreated, r.StatusCode)
+	require.Equal(t, http.StatusOK, r.StatusCode)
 
 	ctx := context.Background()
 	firstUser, err := tEnv.Server.Queries.GetUserByEmail(ctx, req.Email)
 	require.NoError(t, err, "error getting the first user")
-	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(firstUser.Hash), []byte(req.Password)), "user password should be hashed")
+	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(firstUser.PasswordHash), []byte(req.Password)), "user password should be hashed")
 	require.Equal(t, database.RoleAdmin, firstUser.Role, "first user should be admin")
 
 	req = api.SetupRequest{
@@ -91,25 +88,9 @@ func TestSetup(t *testing.T) {
 		Email:    gofakeit.Email(),
 		Password: fakePassword(),
 	}
-	r, err = postSetup(&tEnv, req, nil)
+	r, err = sdk.Setup(req)
 	require.NoError(t, err, "error making the second request")
 	require.Equal(t, http.StatusNotFound, r.StatusCode, "setup should return 404 if it was already done")
-}
-
-func postSetup(tEnv *testutil.TestEnv, req api.SetupRequest, res any) (*http.Response, error) {
-	b, err := json.Marshal(req)
-	if err != nil {
-		panic(err)
-	}
-
-	r, err := http.Post(tEnv.URL()+"/setup", "application/json", bytes.NewBuffer(b))
-	if err != nil {
-		return nil, err
-	}
-
-	defer r.Body.Close()
-	json.NewDecoder(r.Body).Decode(res)
-	return r, nil
 }
 
 func fakePassword() string {

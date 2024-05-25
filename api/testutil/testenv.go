@@ -6,12 +6,14 @@ import (
 	"os"
 
 	"github.com/BrunoQuaresma/openticket/api"
+	"github.com/BrunoQuaresma/openticket/sdk"
 )
 
 type TestEnv struct {
 	Debug    bool
 	Database *TestDatabase
 	Server   *api.Server
+	sdk      *sdk.Client
 }
 
 func (tEnv *TestEnv) Start() {
@@ -48,6 +50,13 @@ func (tEnv *TestEnv) Close() {
 
 func (tEnv *TestEnv) URL() string {
 	return "http://localhost" + tEnv.Server.Addr()
+}
+
+func (tEnv *TestEnv) SDK() *sdk.Client {
+	if tEnv.sdk == nil {
+		tEnv.sdk = sdk.New(tEnv.URL())
+	}
+	return tEnv.sdk
 }
 
 func getFreePort() (port int, err error) {

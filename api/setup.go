@@ -18,7 +18,7 @@ type SetupRequest struct {
 
 func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
-	server.Parse(&req, c)
+	server.ParseJSONRequest(&req, c)
 
 	ctx := context.Background()
 	tx, err := server.BeginTX(ctx)
@@ -48,11 +48,11 @@ func (server *Server) setup(c *gin.Context) {
 	}
 
 	_, err = server.Queries.CreateUser(ctx, database.CreateUserParams{
-		Name:     req.Name,
-		Username: req.Username,
-		Email:    req.Email,
-		Hash:     string(h),
-		Role:     "admin",
+		Name:         req.Name,
+		Username:     req.Username,
+		Email:        req.Email,
+		PasswordHash: string(h),
+		Role:         "admin",
 	})
 
 	if err != nil {
@@ -60,5 +60,5 @@ func (server *Server) setup(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusCreated)
+	c.Status(http.StatusOK)
 }
