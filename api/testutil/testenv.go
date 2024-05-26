@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/BrunoQuaresma/openticket/api"
+	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/BrunoQuaresma/openticket/sdk"
 	"github.com/brianvoe/gofakeit"
 )
@@ -17,8 +18,8 @@ type Credentials struct {
 
 type TestEnv struct {
 	Debug            bool
-	Database         *TestDatabase
-	Server           *api.Server
+	database         *TestDatabase
+	server           *api.Server
 	sdk              *sdk.Client
 	adminCredentials Credentials
 }
@@ -33,8 +34,8 @@ func (tEnv *TestEnv) Start() {
 	if err != nil {
 		panic("error getting free port: " + err.Error())
 	}
-	tEnv.Database = NewTestDatabase(dbPort)
-	err = tEnv.Database.Start(logger)
+	tEnv.database = NewTestDatabase(dbPort)
+	err = tEnv.database.Start(logger)
 	if err != nil {
 		panic("error starting test database: " + err.Error())
 	}
@@ -43,20 +44,20 @@ func (tEnv *TestEnv) Start() {
 	if err != nil {
 		panic("error getting free port: " + err.Error())
 	}
-	tEnv.Server = api.Start(api.Options{
-		DatabaseURL: tEnv.Database.URL(),
+	tEnv.server = api.Start(api.Options{
+		DatabaseURL: tEnv.database.URL(),
 		Mode:        api.TestMode,
 		Port:        port,
 	})
 }
 
 func (tEnv *TestEnv) Close() {
-	tEnv.Database.Stop()
-	tEnv.Server.Close()
+	tEnv.database.Stop()
+	tEnv.server.Close()
 }
 
 func (tEnv *TestEnv) URL() string {
-	return "http://localhost" + tEnv.Server.Addr()
+	return "http://localhost" + tEnv.server.Addr()
 }
 
 func (tEnv *TestEnv) SDK() *sdk.Client {
@@ -86,6 +87,10 @@ func (tEnv *TestEnv) Setup() {
 
 func (tEnv *TestEnv) AdminCredentials() Credentials {
 	return tEnv.adminCredentials
+}
+
+func (tEnv *TestEnv) DBQueries() *database.Queries {
+	return tEnv.server.DBQueries()
 }
 
 func getFreePort() (port int, err error) {
