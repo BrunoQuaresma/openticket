@@ -42,8 +42,8 @@ type ResponseError struct {
 	Errors []ValidationError `json:"errors"`
 }
 
-type Response struct {
-	Data  any           `json:"data,omitempty"`
+type Response[T any] struct {
+	Data  T             `json:"data,omitempty"`
 	Error ResponseError `json:"error,omitempty"`
 }
 
@@ -147,6 +147,6 @@ func (api *Server) ParseJSONRequest(req any, c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusBadRequest, Response{Error: ResponseError{Errors: apiErrors}})
+	c.JSON(http.StatusBadRequest, Response[any]{Error: ResponseError{Errors: apiErrors}})
 	c.Done()
 }

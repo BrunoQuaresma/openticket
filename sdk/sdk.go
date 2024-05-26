@@ -2,9 +2,9 @@ package sdk
 
 import "github.com/BrunoQuaresma/openticket/api"
 
-type RequestResult struct {
+type RequestResult[T any] struct {
 	StatusCode int
-	api.Response
+	api.Response[T]
 }
 
 type Client struct {

@@ -14,7 +14,7 @@ import (
 )
 
 func TestSetup_Validation(t *testing.T) {
-	tEnv := testutil.TestEnv{}
+	var tEnv testutil.TestEnv
 	tEnv.Start()
 	defer tEnv.Close()
 
@@ -35,7 +35,7 @@ func TestSetup_Validation(t *testing.T) {
 			Name:     gofakeit.Name(),
 			Username: gofakeit.Username(),
 			Email:    "invalid-email",
-			Password: fakePassword(),
+			Password: testutil.FakePassword(),
 		}
 		r, err := tEnv.SDK().Setup(req)
 		require.NoError(t, err, "error making request")
@@ -61,7 +61,7 @@ func TestSetup_Validation(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
-	tEnv := testutil.TestEnv{}
+	var tEnv testutil.TestEnv
 	tEnv.Start()
 	defer tEnv.Close()
 	sdk := tEnv.SDK()
@@ -70,7 +70,7 @@ func TestSetup(t *testing.T) {
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
 		Email:    gofakeit.Email(),
-		Password: fakePassword(),
+		Password: testutil.FakePassword(),
 	}
 	r, err := sdk.Setup(req)
 	require.NoError(t, err, "error making the first request")
@@ -86,13 +86,9 @@ func TestSetup(t *testing.T) {
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
 		Email:    gofakeit.Email(),
-		Password: fakePassword(),
+		Password: testutil.FakePassword(),
 	}
 	r, err = sdk.Setup(req)
 	require.NoError(t, err, "error making the second request")
 	require.Equal(t, http.StatusNotFound, r.StatusCode, "setup should return 404 if it was already done")
-}
-
-func fakePassword() string {
-	return gofakeit.Password(true, true, true, true, false, 15)
 }

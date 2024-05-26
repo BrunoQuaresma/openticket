@@ -2,13 +2,12 @@ package api
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"time"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -30,7 +29,7 @@ func (server *Server) login(c *gin.Context) {
 	user, err := server.Queries.GetUserByEmail(ctx, req.Email)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if err == pgx.ErrNoRows {
 			c.AbortWithStatusJSON(401, gin.H{"message": "invalid email or password"})
 			return
 		}
@@ -55,7 +54,10 @@ func (server *Server) login(c *gin.Context) {
 	_, err = server.Queries.CreateSession(ctx, database.CreateSessionParams{
 		UserID:    user.ID,
 		TokenHash: string(tokenHash),
-		ExpiresAt: pgtype.Timestamp{Time: time.Now().AddDate(0, 0, 30)},
+		ExpiresAt: pgtype.Timestamp{
+			Time:  time.Now().AddDate(0, 0, 30).UTC(),
+			Valid: true,
+		},
 	})
 	if err != nil {
 		c.AbortWithError(500, err)

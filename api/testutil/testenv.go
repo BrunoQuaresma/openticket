@@ -7,13 +7,20 @@ import (
 
 	"github.com/BrunoQuaresma/openticket/api"
 	"github.com/BrunoQuaresma/openticket/sdk"
+	"github.com/brianvoe/gofakeit"
 )
 
+type Credentials struct {
+	Email    string
+	Password string
+}
+
 type TestEnv struct {
-	Debug    bool
-	Database *TestDatabase
-	Server   *api.Server
-	sdk      *sdk.Client
+	Debug            bool
+	Database         *TestDatabase
+	Server           *api.Server
+	sdk              *sdk.Client
+	adminCredentials Credentials
 }
 
 func (tEnv *TestEnv) Start() {
@@ -57,6 +64,28 @@ func (tEnv *TestEnv) SDK() *sdk.Client {
 		tEnv.sdk = sdk.New(tEnv.URL())
 	}
 	return tEnv.sdk
+}
+
+func (tEnv *TestEnv) Setup() {
+	credentials := Credentials{
+		Email:    gofakeit.Email(),
+		Password: FakePassword(),
+	}
+	tEnv.adminCredentials = credentials
+
+	_, err := tEnv.SDK().Setup((api.SetupRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    credentials.Email,
+		Password: credentials.Password,
+	}))
+	if err != nil {
+		panic("error making setup request: " + err.Error())
+	}
+}
+
+func (tEnv *TestEnv) AdminCredentials() Credentials {
+	return tEnv.adminCredentials
 }
 
 func getFreePort() (port int, err error) {

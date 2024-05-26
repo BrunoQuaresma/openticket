@@ -4,7 +4,7 @@ import (
 	"github.com/BrunoQuaresma/openticket/sdk"
 )
 
-func HasValidationError(res sdk.RequestResult, field string, validator string) bool {
+func HasValidationError(res sdk.RequestResult[any], field string, validator string) bool {
 	if len(res.Error.Errors) == 0 {
 		return false
 	}
