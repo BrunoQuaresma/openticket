@@ -26,7 +26,8 @@ func (server *Server) login(c *gin.Context) {
 	server.ParseJSONRequest(&req, c)
 
 	ctx := context.Background()
-	user, err := server.Queries.GetUserByEmail(ctx, req.Email)
+	dbQueries := server.DBQueries()
+	user, err := dbQueries.GetUserByEmail(ctx, req.Email)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -51,7 +52,7 @@ func (server *Server) login(c *gin.Context) {
 		return
 	}
 
-	_, err = server.Queries.CreateSession(ctx, database.CreateSessionParams{
+	_, err = dbQueries.CreateSession(ctx, database.CreateSessionParams{
 		UserID:    user.ID,
 		TokenHash: string(tokenHash),
 		ExpiresAt: pgtype.Timestamp{

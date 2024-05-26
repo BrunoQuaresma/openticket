@@ -21,6 +21,7 @@ func (server *Server) setup(c *gin.Context) {
 	server.ParseJSONRequest(&req, c)
 
 	ctx := context.Background()
+	dbQueries := server.DBQueries()
 	tx, err := server.BeginTX(ctx)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -28,7 +29,7 @@ func (server *Server) setup(c *gin.Context) {
 	}
 	defer tx.Rollback(ctx)
 
-	qtx := server.Queries.WithTx(tx)
+	qtx := dbQueries.WithTx(tx)
 	count, err := qtx.CountUsers(ctx)
 
 	if err != nil {
@@ -47,7 +48,7 @@ func (server *Server) setup(c *gin.Context) {
 		return
 	}
 
-	_, err = server.Queries.CreateUser(ctx, database.CreateUserParams{
+	_, err = dbQueries.CreateUser(ctx, database.CreateUserParams{
 		Name:         req.Name,
 		Username:     req.Username,
 		Email:        req.Email,

@@ -15,8 +15,8 @@ import (
 )
 
 type Server struct {
-	Queries    *sqlc.Queries
-	database   *pgxpool.Pool
+	dbQueries  *sqlc.Queries
+	db         *pgxpool.Pool
 	validate   *validator.Validate
 	httpServer *http.Server
 }
@@ -67,9 +67,9 @@ func Start(options Options) *Server {
 	})
 
 	server := &Server{
-		Queries:  sqlc.New(db),
-		validate: validate,
-		database: db,
+		dbQueries: sqlc.New(db),
+		validate:  validate,
+		db:        db,
 	}
 
 	var r *gin.Engine
@@ -127,7 +127,11 @@ func (api *Server) Addr() string {
 }
 
 func (api *Server) BeginTX(ctx context.Context) (pgx.Tx, error) {
-	return api.database.Begin(ctx)
+	return api.db.Begin(ctx)
+}
+
+func (api *Server) DBQueries() *sqlc.Queries {
+	return api.dbQueries
 }
 
 func (api *Server) ParseJSONRequest(req any, c *gin.Context) {
