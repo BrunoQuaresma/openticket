@@ -74,12 +74,13 @@ func (tEnv *TestEnv) Setup() {
 	}
 	tEnv.adminCredentials = credentials
 
-	_, err := tEnv.SDK().Setup((api.SetupRequest{
+	var res api.Response[any]
+	_, err := tEnv.SDK().Setup(api.SetupRequest{
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
 		Email:    credentials.Email,
 		Password: credentials.Password,
-	}))
+	}, &res)
 	if err != nil {
 		panic("error making setup request: " + err.Error())
 	}

@@ -17,13 +17,13 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type LoginResponse struct {
+type LoginResponse = Response[struct {
 	SessionToken string `json:"session_token"`
-}
+}]
 
 func (server *Server) login(c *gin.Context) {
 	var req LoginRequest
-	server.ParseJSONRequest(&req, c)
+	server.ParseJSONRequest(c, &req)
 
 	ctx := context.Background()
 	dbQueries := server.DBQueries()
@@ -65,5 +65,8 @@ func (server *Server) login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, LoginResponse{SessionToken: t})
+	var res LoginResponse
+	res.Data.SessionToken = t
+
+	c.JSON(200, res)
 }

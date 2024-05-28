@@ -8,28 +8,25 @@ import (
 	"github.com/BrunoQuaresma/openticket/api"
 )
 
-type LoginRequestResult = RequestResult[api.LoginResponse]
-
-func (c *Client) Login(req api.LoginRequest) (LoginRequestResult, error) {
+func (c *Client) Login(req api.LoginRequest, res *api.LoginResponse) (*http.Response, error) {
 	b, err := json.Marshal(req)
 	if err != nil {
-		return LoginRequestResult{}, err
+		return nil, err
 	}
 
-	r, err := http.Post(c.url+"/login", "application/json", bytes.NewBuffer(b))
+	httpRes, err := http.Post(c.url+"/login", "application/json", bytes.NewBuffer(b))
 	if err != nil {
-		return LoginRequestResult{}, err
+		return nil, err
 	}
 
-	result := LoginRequestResult{StatusCode: r.StatusCode}
-	if r.Body != http.NoBody {
-		defer r.Body.Close()
+	if httpRes.Body != http.NoBody {
+		defer httpRes.Body.Close()
 
-		err = json.NewDecoder(r.Body).Decode(&result.Response.Data)
+		err = json.NewDecoder(httpRes.Body).Decode(&res)
 		if err != nil {
-			return LoginRequestResult{}, err
+			return nil, err
 		}
 	}
 
-	return result, nil
+	return httpRes, nil
 }

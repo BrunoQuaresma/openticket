@@ -18,7 +18,7 @@ type SetupRequest struct {
 
 func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
-	server.ParseJSONRequest(&req, c)
+	server.ParseJSONRequest(c, &req)
 
 	ctx := context.Background()
 	dbQueries := server.DBQueries()
@@ -48,7 +48,7 @@ func (server *Server) setup(c *gin.Context) {
 		return
 	}
 
-	_, err = dbQueries.CreateUser(ctx, database.CreateUserParams{
+	_, err = qtx.CreateUser(ctx, database.CreateUserParams{
 		Name:         req.Name,
 		Username:     req.Username,
 		Email:        req.Email,
@@ -60,6 +60,7 @@ func (server *Server) setup(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	tx.Commit(ctx)
 
 	c.Status(http.StatusOK)
 }

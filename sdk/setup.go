@@ -8,27 +8,24 @@ import (
 	"github.com/BrunoQuaresma/openticket/api"
 )
 
-type SetupRequestResult = RequestResult[any]
-
-func (c *Client) Setup(req api.SetupRequest) (SetupRequestResult, error) {
+func (c *Client) Setup(req api.SetupRequest, res *api.Response[any]) (*http.Response, error) {
 	b, err := json.Marshal(req)
 	if err != nil {
-		return SetupRequestResult{}, err
+		return nil, err
 	}
 
-	r, err := http.Post(c.url+"/setup", "application/json", bytes.NewBuffer(b))
+	httpRes, err := http.Post(c.url+"/setup", "application/json", bytes.NewBuffer(b))
 	if err != nil {
-		return SetupRequestResult{}, err
+		return nil, err
 	}
 
-	result := SetupRequestResult{StatusCode: r.StatusCode}
-	if r.Body != http.NoBody {
-		defer r.Body.Close()
-		err = json.NewDecoder(r.Body).Decode(&result.Response)
+	if httpRes.Body != http.NoBody {
+		defer httpRes.Body.Close()
+		err = json.NewDecoder(httpRes.Body).Decode(&res)
 		if err != nil {
-			return SetupRequestResult{}, err
+			return nil, err
 		}
 	}
 
-	return result, nil
+	return httpRes, nil
 }

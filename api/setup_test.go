@@ -20,14 +20,15 @@ func TestSetup_Validation(t *testing.T) {
 
 	t.Run("required fields", func(t *testing.T) {
 		var req api.SetupRequest
-		r, err := tEnv.SDK().Setup(req)
+		var res api.Response[any]
+		httpRes, err := tEnv.SDK().Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
-		require.Equal(t, http.StatusBadRequest, r.StatusCode)
-		require.True(t, testutil.HasValidationError(r, "name", "required"))
-		require.True(t, testutil.HasValidationError(r, "username", "required"))
-		require.True(t, testutil.HasValidationError(r, "email", "required"))
-		require.True(t, testutil.HasValidationError(r, "password", "required"))
+		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
+		testutil.RequireValidationError(t, res.Errors, "name", "required")
+		testutil.RequireValidationError(t, res.Errors, "username", "required")
+		testutil.RequireValidationError(t, res.Errors, "email", "required")
+		testutil.RequireValidationError(t, res.Errors, "password", "required")
 	})
 
 	t.Run("valid email", func(t *testing.T) {
@@ -37,11 +38,12 @@ func TestSetup_Validation(t *testing.T) {
 			Email:    "invalid-email",
 			Password: testutil.FakePassword(),
 		}
-		r, err := tEnv.SDK().Setup(req)
+		var res api.Response[any]
+		httpRes, err := tEnv.SDK().Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
-		require.Equal(t, http.StatusBadRequest, r.StatusCode)
-		require.True(t, testutil.HasValidationError(r, "email", "email"))
+		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
+		testutil.RequireValidationError(t, res.Errors, "email", "email")
 	})
 
 	t.Run("valid password", func(t *testing.T) {
@@ -52,11 +54,12 @@ func TestSetup_Validation(t *testing.T) {
 			Password: "no8char",
 		}
 
-		r, err := tEnv.SDK().Setup(req)
+		var res api.Response[any]
+		httpRes, err := tEnv.SDK().Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
-		require.Equal(t, http.StatusBadRequest, r.StatusCode)
-		require.True(t, testutil.HasValidationError(r, "password", "min"))
+		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
+		testutil.RequireValidationError(t, res.Errors, "password", "min")
 	})
 }
 
@@ -72,9 +75,11 @@ func TestSetup(t *testing.T) {
 		Email:    gofakeit.Email(),
 		Password: testutil.FakePassword(),
 	}
-	r, err := sdk.Setup(req)
+
+	var res api.Response[any]
+	httpRes, err := sdk.Setup(req, &res)
 	require.NoError(t, err, "error making the first request")
-	require.Equal(t, http.StatusOK, r.StatusCode)
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
 
 	ctx := context.Background()
 	firstUser, err := tEnv.DBQueries().GetUserByEmail(ctx, req.Email)
@@ -88,7 +93,7 @@ func TestSetup(t *testing.T) {
 		Email:    gofakeit.Email(),
 		Password: testutil.FakePassword(),
 	}
-	r, err = sdk.Setup(req)
+	httpRes, err = sdk.Setup(req, &res)
 	require.NoError(t, err, "error making the second request")
-	require.Equal(t, http.StatusNotFound, r.StatusCode, "setup should return 404 if it was already done")
+	require.Equal(t, http.StatusNotFound, httpRes.StatusCode, "setup should return 404 if it was already done")
 }

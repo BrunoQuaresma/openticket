@@ -16,14 +16,15 @@ func TestLogin_ValidCredentials(t *testing.T) {
 	sdk := tEnv.SDK()
 
 	credentials := tEnv.AdminCredentials()
-	r, err := sdk.Login(api.LoginRequest{
+	var res api.LoginResponse
+	httpRes, err := sdk.Login(api.LoginRequest{
 		Email:    credentials.Email,
 		Password: credentials.Password,
-	})
+	}, &res)
 
 	require.NoError(t, err, "error making login request")
-	require.Equal(t, 200, r.StatusCode, "unexpected status code")
-	require.NotEmpty(t, r.Data.SessionToken, "session token should not be empty")
+	require.Equal(t, 200, httpRes.StatusCode, "unexpected status code")
+	require.NotEmpty(t, res.Data.SessionToken, "session token should not be empty")
 }
 
 func TestLogin_InvalidCredentials(t *testing.T) {
@@ -35,23 +36,23 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 
 	t.Run("wrong email", func(t *testing.T) {
 		credentials := tEnv.AdminCredentials()
-		r, err := sdk.Login(api.LoginRequest{
+		httpRes, err := sdk.Login(api.LoginRequest{
 			Email:    "wrong" + credentials.Email,
 			Password: credentials.Password,
-		})
+		}, &api.LoginResponse{})
 
 		require.NoError(t, err, "error making login request")
-		require.Equal(t, 401, r.StatusCode, "unexpected status code")
+		require.Equal(t, 401, httpRes.StatusCode, "unexpected status code")
 	})
 
 	t.Run("wrong password", func(t *testing.T) {
 		credentials := tEnv.AdminCredentials()
-		r, err := sdk.Login(api.LoginRequest{
+		httpRes, err := sdk.Login(api.LoginRequest{
 			Email:    credentials.Email,
 			Password: "wrong" + credentials.Password,
-		})
+		}, &api.LoginResponse{})
 
 		require.NoError(t, err, "error making login request")
-		require.Equal(t, 401, r.StatusCode, "unexpected status code")
+		require.Equal(t, 401, httpRes.StatusCode, "unexpected status code")
 	})
 }

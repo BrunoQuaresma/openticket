@@ -1,18 +1,26 @@
 package testutil
 
 import (
-	"github.com/BrunoQuaresma/openticket/sdk"
+	"fmt"
+	"testing"
+
+	"github.com/BrunoQuaresma/openticket/api"
+	"github.com/stretchr/testify/require"
 )
 
-func HasValidationError(res sdk.RequestResult[any], field string, validator string) bool {
-	if len(res.Error.Errors) == 0 {
-		return false
+func RequireValidationError(t *testing.T, errors []api.ValidationError, field string, validator string) {
+	hasError := false
+
+	if len(errors) == 0 {
+		hasError = false
 	}
 
-	for _, e := range res.Error.Errors {
+	for _, e := range errors {
 		if e.Field == field && e.Validator == validator {
-			return true
+			hasError = true
+			break
 		}
 	}
-	return false
+
+	require.True(t, hasError, fmt.Sprintf("expected error for field %s with validator %s", field, validator))
 }

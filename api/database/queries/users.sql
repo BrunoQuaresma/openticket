@@ -6,5 +6,8 @@ RETURNING id, name, username, email, profile_picture_url, created_at, updated_at
 -- name: GetUserByEmail :one
 SELECT * FROM users WHERE email = $1 LIMIT 1;
 
+-- name: GetUserByUsername :one
+SELECT * FROM users WHERE username = $1 LIMIT 1;
+
 -- name: CountUsers :one
 SELECT COUNT(*) FROM users;

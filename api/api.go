@@ -38,13 +38,9 @@ type ValidationError struct {
 	Validator string `json:"validator"`
 }
 
-type ResponseError struct {
-	Errors []ValidationError `json:"errors"`
-}
-
 type Response[T any] struct {
-	Data  T             `json:"data,omitempty"`
-	Error ResponseError `json:"error,omitempty"`
+	Data   T                 `json:"data,omitempty"`
+	Errors []ValidationError `json:"errors"`
 }
 
 func Start(options Options) *Server {
@@ -89,6 +85,7 @@ func Start(options Options) *Server {
 	r.POST("/setup", server.setup)
 	r.POST("/login", server.login)
 	r.POST("/tickets", server.createTicket)
+	r.POST("/users", server.createUser)
 
 	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
@@ -134,7 +131,7 @@ func (api *Server) DBQueries() *sqlc.Queries {
 	return api.dbQueries
 }
 
-func (api *Server) ParseJSONRequest(req any, c *gin.Context) {
+func (api *Server) ParseJSONRequest(c *gin.Context, req any) {
 	c.BindJSON(req)
 	err := api.validate.Struct(req)
 
@@ -151,6 +148,6 @@ func (api *Server) ParseJSONRequest(req any, c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusBadRequest, Response[any]{Error: ResponseError{Errors: apiErrors}})
+	c.JSON(http.StatusBadRequest, Response[any]{Errors: apiErrors})
 	c.Done()
 }
