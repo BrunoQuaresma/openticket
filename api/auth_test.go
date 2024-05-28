@@ -28,6 +28,8 @@ func TestLogin_ValidCredentials(t *testing.T) {
 }
 
 func TestLogin_InvalidCredentials(t *testing.T) {
+	t.Parallel()
+
 	var tEnv testutil.TestEnv
 	tEnv.Start()
 	defer tEnv.Close()

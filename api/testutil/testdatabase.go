@@ -28,7 +28,9 @@ func (testDB *TestDatabase) Start(logger io.Writer) error {
 			Username(testDB.Username).
 			Password(testDB.Password).
 			Database(testDB.Database).
-			Logger(logger),
+			Logger(logger).
+			// Avoid parallel DB instances from interfering with each other data
+			RuntimePath("/home/vscode/.embedded-postgres-go/extracted/" + fmt.Sprint(testDB.Port)),
 	)
 	err := testDB.Conn.Start()
 	if err != nil {

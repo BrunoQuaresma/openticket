@@ -14,6 +14,8 @@ import (
 )
 
 func TestSetup_Validation(t *testing.T) {
+	t.Parallel()
+
 	var tEnv testutil.TestEnv
 	tEnv.Start()
 	defer tEnv.Close()
