@@ -16,7 +16,7 @@ import (
 func TestSetup_Validation(t *testing.T) {
 	t.Parallel()
 
-	var tEnv testutil.TestEnv
+	tEnv := testutil.NewEnv()
 	tEnv.Start()
 	defer tEnv.Close()
 
@@ -66,7 +66,7 @@ func TestSetup_Validation(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
-	var tEnv testutil.TestEnv
+	tEnv := testutil.NewEnv()
 	tEnv.Start()
 	defer tEnv.Close()
 	sdk := tEnv.SDK()

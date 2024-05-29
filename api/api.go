@@ -15,10 +15,11 @@ import (
 )
 
 type Server struct {
-	dbQueries  *sqlc.Queries
 	db         *pgxpool.Pool
+	dbQueries  *sqlc.Queries
 	validate   *validator.Validate
 	httpServer *http.Server
+	router     *gin.Engine
 }
 
 const (
@@ -43,16 +44,19 @@ type Response[T any] struct {
 	Errors []ValidationError `json:"errors"`
 }
 
-func Start(options Options) *Server {
-	ctx := context.Background()
+func New(options Options) *Server {
+	var server Server
 
-	db, err := pgxpool.New(ctx, options.DatabaseURL)
+	dbCtx := context.Background()
+	db, err := pgxpool.New(dbCtx, options.DatabaseURL)
 	if err != nil {
 		panic("error connecting to the database. " + err.Error())
 	}
+	server.db = db
+	server.dbQueries = sqlc.New(db)
 
-	validate := validator.New(validator.WithRequiredStructEnabled())
-	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+	server.validate = validator.New(validator.WithRequiredStructEnabled())
+	server.validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
 
 		if name == "-" {
@@ -62,44 +66,50 @@ func Start(options Options) *Server {
 		return name
 	})
 
-	server := &Server{
-		dbQueries: sqlc.New(db),
-		validate:  validate,
-		db:        db,
-	}
-
-	var r *gin.Engine
 	switch options.Mode {
 	case TestMode:
 		gin.SetMode(gin.TestMode)
-		r = gin.New()
+		server.router = gin.New()
 	case DevMode:
 		gin.SetMode(gin.DebugMode)
-		r = gin.Default()
+		server.router = gin.Default()
 	default:
 		gin.SetMode(gin.ReleaseMode)
-		r = gin.Default()
+		server.router = gin.Default()
 	}
 
-	r.GET("/health", server.health)
-	r.POST("/setup", server.setup)
-	r.POST("/login", server.login)
-	r.POST("/tickets", server.createTicket)
-	r.POST("/users", server.createUser)
+	server.router.GET("/health", server.health)
+	server.router.POST("/setup", server.setup)
+	server.router.POST("/login", server.login)
+	server.router.POST("/tickets", server.createTicket)
+	server.router.POST("/users", server.createUser)
 
 	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
-		Handler: r,
+		Handler: server.router,
 	}
+
+	return &server
+}
+
+func (server *Server) Extend(f func(r *gin.Engine)) {
+	f(server.router)
+}
+
+func (server *Server) Start() {
 	go func() {
-		err = server.httpServer.ListenAndServe()
+		defer server.Close()
+		err := server.httpServer.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			panic("error starting server. " + err.Error())
 		}
 	}()
 	ready := make(chan bool, 1)
 	go func() {
-		var res *http.Response
+		var (
+			res *http.Response
+			err error
+		)
 
 		for res == nil || res.StatusCode != http.StatusOK {
 			res, err = http.Get("http://localhost" + server.Addr() + "/health")
@@ -111,12 +121,11 @@ func Start(options Options) *Server {
 		ready <- true
 	}()
 	<-ready
-
-	return server
 }
 
 func (api *Server) Close() {
 	api.httpServer.Close()
+	api.db.Close()
 }
 
 func (api *Server) Addr() string {

@@ -17,16 +17,18 @@ type Credentials struct {
 }
 
 type TestEnv struct {
-	Debug            bool
+	debug            bool
 	database         *TestDatabase
 	server           *api.Server
 	sdk              *sdk.Client
 	adminCredentials Credentials
 }
 
-func (tEnv *TestEnv) Start() {
+func NewEnv() *TestEnv {
+	var tEnv TestEnv
+
 	logger := io.Discard
-	if tEnv.Debug {
+	if tEnv.debug {
 		logger = os.Stdout
 	}
 
@@ -44,11 +46,16 @@ func (tEnv *TestEnv) Start() {
 	if err != nil {
 		panic("error getting free port: " + err.Error())
 	}
-	tEnv.server = api.Start(api.Options{
+	tEnv.server = api.New(api.Options{
 		DatabaseURL: tEnv.database.URL(),
 		Mode:        api.TestMode,
 		Port:        port,
 	})
+	return &tEnv
+}
+
+func (tEnv *TestEnv) Start() {
+	tEnv.server.Start()
 }
 
 func (tEnv *TestEnv) Close() {
@@ -65,6 +72,10 @@ func (tEnv *TestEnv) SDK() *sdk.Client {
 		tEnv.sdk = sdk.New(tEnv.URL())
 	}
 	return tEnv.sdk
+}
+
+func (tEnv *TestEnv) Server() *api.Server {
+	return tEnv.server
 }
 
 func (tEnv *TestEnv) Setup() {

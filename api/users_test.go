@@ -13,7 +13,7 @@ import (
 func TestCreateUser_Validation(t *testing.T) {
 	t.Parallel()
 
-	var tEnv testutil.TestEnv
+	tEnv := testutil.NewEnv()
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()
@@ -125,7 +125,7 @@ func TestCreateUser_Validation(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	var tEnv testutil.TestEnv
+	tEnv := testutil.NewEnv()
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()

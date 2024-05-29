@@ -1,15 +1,68 @@
 package api_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
 
+func TestAuthRequired(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv()
+	server := tEnv.Server()
+	server.Extend(func(r *gin.Engine) {
+		authorized := r.Group("/admin")
+		authorized.Use(server.AuthRequired)
+		authorized.GET("/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"message": "success"})
+		})
+	})
+	tEnv.Start()
+	defer tEnv.Close()
+	tEnv.Setup()
+
+	t.Run("no token", func(t *testing.T) {
+		res, err := http.Get(tEnv.URL() + "/admin/test")
+		require.NoError(t, err, "error making admin test request")
+		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "expect unauthorized status code")
+	})
+
+	t.Run("invalid token", func(t *testing.T) {
+		var client http.Client
+		req, err := http.NewRequest("GET", tEnv.URL()+"/admin/test", nil)
+		require.NoError(t, err, "error creating request")
+		req.Header.Set(api.SessionTokenHeader, "invalid-token")
+		res, err := client.Do(req)
+		require.NoError(t, err, "error making admin test request")
+		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "expect unauthorized status code")
+	})
+
+	t.Run("authenticated token", func(t *testing.T) {
+		sdk := tEnv.SDK()
+		credentials := tEnv.AdminCredentials()
+		var loginRes api.LoginResponse
+		_, err := sdk.Login(api.LoginRequest(credentials), &loginRes)
+		require.NoError(t, err, "error making login request")
+
+		var client http.Client
+		req, err := http.NewRequest("GET", tEnv.URL()+"/admin/test", nil)
+		require.NoError(t, err, "error creating request")
+		req.Header.Set(api.SessionTokenHeader, loginRes.Data.SessionToken)
+		res, err := client.Do(req)
+		require.NoError(t, err, "error making admin test request")
+		require.Equal(t, http.StatusOK, res.StatusCode, "expect ok status code")
+	})
+}
+
 func TestLogin_ValidCredentials(t *testing.T) {
-	var tEnv testutil.TestEnv
+	t.Parallel()
+
+	tEnv := testutil.NewEnv()
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()
@@ -30,7 +83,7 @@ func TestLogin_ValidCredentials(t *testing.T) {
 func TestLogin_InvalidCredentials(t *testing.T) {
 	t.Parallel()
 
-	var tEnv testutil.TestEnv
+	tEnv := testutil.NewEnv()
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()

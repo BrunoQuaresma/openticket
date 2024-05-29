@@ -2,15 +2,41 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"time"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const SessionTokenHeader = "OPENTICKET-SESSION-TOKEN"
+
+func (server *Server) AuthRequired(c *gin.Context) {
+	sessionToken := c.Request.Header.Get(SessionTokenHeader)
+	queries := server.DBQueries()
+	ctx := context.Background()
+	sum := sha256.Sum256([]byte(sessionToken))
+	tokenHash := string(sum[:])
+	session, err := queries.GetSessionByTokenHash(ctx, tokenHash)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			c.AbortWithStatus(401)
+		} else {
+			c.AbortWithError(500, err)
+		}
+		return
+	}
+	if session.ExpiresAt.Time.Before(time.Now()) {
+		c.AbortWithStatus(401)
+		return
+	}
+	c.Next()
+}
 
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
@@ -45,8 +71,13 @@ func (server *Server) login(c *gin.Context) {
 		return
 	}
 
-	t := uuid.NewString()
-	tokenHash, err := bcrypt.GenerateFromPassword([]byte(t), bcrypt.DefaultCost)
+	token, err := secureToken()
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
+	sum := sha256.Sum256([]byte(token))
+	tokenHash := string(sum[:])
 	if err != nil {
 		c.AbortWithError(500, err)
 		return
@@ -54,7 +85,7 @@ func (server *Server) login(c *gin.Context) {
 
 	_, err = dbQueries.CreateSession(ctx, database.CreateSessionParams{
 		UserID:    user.ID,
-		TokenHash: string(tokenHash),
+		TokenHash: tokenHash,
 		ExpiresAt: pgtype.Timestamp{
 			Time:  time.Now().AddDate(0, 0, 30).UTC(),
 			Valid: true,
@@ -66,7 +97,15 @@ func (server *Server) login(c *gin.Context) {
 	}
 
 	var res LoginResponse
-	res.Data.SessionToken = t
+	res.Data.SessionToken = token
 
 	c.JSON(200, res)
+}
+
+func secureToken() (string, error) {
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
