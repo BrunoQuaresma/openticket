@@ -105,6 +105,17 @@ func (tEnv *TestEnv) DBQueries() *database.Queries {
 	return tEnv.server.DBQueries()
 }
 
+func (tEnv *TestEnv) Authenticate(credentials Credentials) error {
+	var loginRes api.LoginResponse
+	sdk := tEnv.SDK()
+	_, err := sdk.Login(api.LoginRequest(credentials), &loginRes)
+	if err != nil {
+		return err
+	}
+	sdk.Authenticate(loginRes.Data.SessionToken)
+	return nil
+}
+
 func getFreePort() (port int, err error) {
 	var a *net.TCPAddr
 	if a, err = net.ResolveTCPAddr("tcp", "localhost:0"); err == nil {

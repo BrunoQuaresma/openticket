@@ -42,7 +42,7 @@ func TestAuthRequired(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "expect unauthorized status code")
 	})
 
-	t.Run("authenticated token", func(t *testing.T) {
+	t.Run("valid token", func(t *testing.T) {
 		sdk := tEnv.SDK()
 		credentials := tEnv.AdminCredentials()
 		var loginRes api.LoginResponse

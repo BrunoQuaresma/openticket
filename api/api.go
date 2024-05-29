@@ -82,7 +82,12 @@ func New(options Options) *Server {
 	server.router.POST("/setup", server.setup)
 	server.router.POST("/login", server.login)
 	server.router.POST("/tickets", server.createTicket)
-	server.router.POST("/users", server.createUser)
+
+	authenticated := server.router.Group("/")
+	{
+		authenticated.Use(server.AuthRequired)
+		authenticated.POST("/users", server.createUser)
+	}
 
 	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),

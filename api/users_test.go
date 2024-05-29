@@ -10,6 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestCreateUser_Authentication(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv()
+	tEnv.Start()
+	defer tEnv.Close()
+	tEnv.Setup()
+	sdk := tEnv.SDK()
+
+	httpRes, err := sdk.CreateUser(api.CreateUserRequest{}, &api.CreateUserResponse{})
+	require.NoError(t, err, "error making create user request")
+	require.Equal(t, http.StatusUnauthorized, httpRes.StatusCode)
+}
+
 func TestCreateUser_Validation(t *testing.T) {
 	t.Parallel()
 
@@ -17,6 +31,7 @@ func TestCreateUser_Validation(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()
+	tEnv.Authenticate(tEnv.AdminCredentials())
 
 	t.Run("required fields", func(t *testing.T) {
 		var req api.CreateUserRequest
@@ -125,10 +140,13 @@ func TestCreateUser_Validation(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
+	t.Parallel()
+
 	tEnv := testutil.NewEnv()
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()
+	tEnv.Authenticate(tEnv.AdminCredentials())
 
 	req := api.CreateUserRequest{
 		Name:     gofakeit.Name(),

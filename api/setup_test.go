@@ -66,6 +66,8 @@ func TestSetup_Validation(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
+	t.Parallel()
+
 	tEnv := testutil.NewEnv()
 	tEnv.Start()
 	defer tEnv.Close()

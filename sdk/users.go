@@ -7,6 +7,6 @@ import (
 )
 
 func (c *Client) CreateUser(req api.CreateUserRequest, res *api.CreateUserResponse) (*http.Response, error) {
-	httpRes, err := Post(c.url+"/users", req, res)
+	httpRes, err := c.Post("/users", req, res)
 	return httpRes, err
 }
