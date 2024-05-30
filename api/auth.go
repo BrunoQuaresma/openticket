@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"time"
 
@@ -21,8 +22,9 @@ func (server *Server) AuthRequired(c *gin.Context) {
 	queries := server.DBQueries()
 	ctx := context.Background()
 	sum := sha256.Sum256([]byte(sessionToken))
-	tokenHash := string(sum[:])
+	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
 	session, err := queries.GetSessionByTokenHash(ctx, tokenHash)
+
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			c.AbortWithStatus(401)
@@ -77,12 +79,7 @@ func (server *Server) login(c *gin.Context) {
 		return
 	}
 	sum := sha256.Sum256([]byte(token))
-	tokenHash := string(sum[:])
-	if err != nil {
-		c.AbortWithError(500, err)
-		return
-	}
-
+	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
 	_, err = dbQueries.CreateSession(ctx, database.CreateSessionParams{
 		UserID:    user.ID,
 		TokenHash: tokenHash,
