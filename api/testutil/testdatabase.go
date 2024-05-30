@@ -22,6 +22,10 @@ type TestDatabase struct {
 }
 
 func (testDB *TestDatabase) Start(logger io.Writer) error {
+	tempPath, err := os.MkdirTemp("", "testdb")
+	if err != nil {
+		return errors.New("error creating temp directory: " + err.Error())
+	}
 	testDB.Conn = embeddedpostgres.NewDatabase(
 		embeddedpostgres.DefaultConfig().
 			Port(testDB.Port).
@@ -29,10 +33,9 @@ func (testDB *TestDatabase) Start(logger io.Writer) error {
 			Password(testDB.Password).
 			Database(testDB.Database).
 			Logger(logger).
-			// Avoid parallel DB instances from interfering with each other data
-			RuntimePath("/home/vscode/.embedded-postgres-go/extracted/" + fmt.Sprint(testDB.Port)),
+			RuntimePath(tempPath),
 	)
-	err := testDB.Conn.Start()
+	err = testDB.Conn.Start()
 	if err != nil {
 		return err
 	}
