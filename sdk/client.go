@@ -49,3 +49,23 @@ func (client *Client) Post(path string, req any, res any) (*http.Response, error
 	}
 	return httpRes, nil
 }
+
+func (client *Client) Delete(path string) (*http.Response, error) {
+	var httpClient http.Client
+	httpReq, err := http.NewRequest("DELETE", client.url+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Application-Type", "application/json")
+	if client.sessionToken != "" {
+		httpReq.Header.Set(api.SessionTokenHeader, client.sessionToken)
+	}
+	httpRes, err := httpClient.Do(httpReq)
+	if err != nil {
+		return httpRes, err
+	}
+	if httpRes.Body != http.NoBody {
+		defer httpRes.Body.Close()
+	}
+	return httpRes, nil
+}

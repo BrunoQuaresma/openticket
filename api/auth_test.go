@@ -24,7 +24,7 @@ func TestAuthRequired(t *testing.T) {
 	})
 	tEnv.Start()
 	defer tEnv.Close()
-	setupReq := tEnv.Setup()
+	setup := tEnv.Setup()
 
 	t.Run("no token", func(t *testing.T) {
 		res, err := http.Get(tEnv.Server().URL() + "/admin/test")
@@ -46,8 +46,8 @@ func TestAuthRequired(t *testing.T) {
 		sdk := tEnv.SDK()
 		var loginRes api.LoginResponse
 		_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
-			Email:    setupReq.Email,
-			Password: setupReq.Password,
+			Email:    setup.Req().Email,
+			Password: setup.Req().Password,
 		}), &loginRes)
 		require.NoError(t, err, "error making login request")
 
@@ -67,13 +67,13 @@ func TestLogin_ValidCredentials(t *testing.T) {
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	setupReq := tEnv.Setup()
+	setup := tEnv.Setup()
 	sdk := tEnv.SDK()
 
 	var res api.LoginResponse
 	httpRes, err := sdk.Login(api.LoginRequest{
-		Email:    setupReq.Email,
-		Password: setupReq.Password,
+		Email:    setup.Req().Email,
+		Password: setup.Req().Password,
 	}, &res)
 
 	require.NoError(t, err, "error making login request")
@@ -87,13 +87,13 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	setupReq := tEnv.Setup()
+	setup := tEnv.Setup()
 	sdk := tEnv.SDK()
 
 	t.Run("wrong email", func(t *testing.T) {
 		httpRes, err := sdk.Login(api.LoginRequest{
-			Email:    "wrong" + setupReq.Email,
-			Password: setupReq.Password,
+			Email:    "wrong" + setup.Req().Email,
+			Password: setup.Req().Password,
 		}, &api.LoginResponse{})
 
 		require.NoError(t, err, "error making login request")
@@ -102,8 +102,8 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 
 	t.Run("wrong password", func(t *testing.T) {
 		httpRes, err := sdk.Login(api.LoginRequest{
-			Email:    setupReq.Email,
-			Password: "wrong" + setupReq.Password,
+			Email:    setup.Req().Email,
+			Password: "wrong" + setup.Req().Password,
 		}, &api.LoginResponse{})
 
 		require.NoError(t, err, "error making login request")

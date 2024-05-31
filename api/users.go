@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
@@ -103,4 +104,33 @@ func (server *Server) createUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, res)
+}
+
+func (server *Server) deleteUser(c *gin.Context) {
+	user := server.AuthUser(c)
+	if user.Role != "admin" {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	if user.ID == int32(id) {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
+	ctx := context.Background()
+	dbQueries := server.DBQueries()
+	err = dbQueries.DeleteUserByID(ctx, int32(id))
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

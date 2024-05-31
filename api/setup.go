@@ -16,6 +16,10 @@ type SetupRequest struct {
 	Password string `json:"password" validate:"required,min=8"`
 }
 
+type SetupResponse = Response[struct {
+	ID int32 `json:"id"`
+}]
+
 func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
 	server.JSONRequest(c, &req)
@@ -48,7 +52,7 @@ func (server *Server) setup(c *gin.Context) {
 		return
 	}
 
-	_, err = qtx.CreateUser(ctx, database.CreateUserParams{
+	user, err := qtx.CreateUser(ctx, database.CreateUserParams{
 		Name:         req.Name,
 		Username:     req.Username,
 		Email:        req.Email,
@@ -62,5 +66,8 @@ func (server *Server) setup(c *gin.Context) {
 	}
 	tx.Commit(ctx)
 
-	c.Status(http.StatusOK)
+	var res SetupResponse
+	res.Data.ID = user.ID
+
+	c.JSON(http.StatusOK, res)
 }

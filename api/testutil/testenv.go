@@ -56,20 +56,37 @@ func (tEnv *TestEnv) Server() *api.Server {
 	return tEnv.server
 }
 
-func (tEnv *TestEnv) Setup() api.SetupRequest {
+type setup struct {
+	req api.SetupRequest
+	res api.SetupResponse
+}
+
+func (i setup) Req() api.SetupRequest {
+	return i.req
+}
+
+func (i setup) Res() api.SetupResponse {
+	return i.res
+}
+
+func (tEnv *TestEnv) Setup() setup {
 	req := api.SetupRequest{
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
 		Email:    gofakeit.Email(),
 		Password: FakePassword(),
 	}
-	var res api.Response[any]
+	var res api.SetupResponse
 	sdk := tEnv.SDK()
 	_, err := sdk.Setup(req, &res)
 	if err != nil {
 		tEnv.t.Fatal("error making setup request: " + err.Error())
 	}
-	return req
+
+	return setup{
+		req: req,
+		res: res,
+	}
 }
 
 func (tEnv *TestEnv) DBQueries() *database.Queries {

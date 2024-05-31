@@ -30,8 +30,8 @@ func TestCreateUser_Validation(t *testing.T) {
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	setupReq := tEnv.Setup()
-	sdk := tEnv.AuthSDK(setupReq.Email, setupReq.Password)
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
 	t.Run("required fields", func(t *testing.T) {
 		var req api.CreateUserRequest
@@ -145,8 +145,8 @@ func TestCreateUser_Success(t *testing.T) {
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	setupReq := tEnv.Setup()
-	sdk := tEnv.AuthSDK(setupReq.Email, setupReq.Password)
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
 	req := api.CreateUserRequest{
 		Name:     gofakeit.Name(),
@@ -174,8 +174,8 @@ func TestCreateUser_OnlyAdminsCanCreateAdmins(t *testing.T) {
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	setupReq := tEnv.Setup()
-	sdk := tEnv.AuthSDK(setupReq.Email, setupReq.Password)
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
 	memberReq := api.CreateUserRequest{
 		Name:     gofakeit.Name(),
@@ -198,5 +198,72 @@ func TestCreateUser_OnlyAdminsCanCreateAdmins(t *testing.T) {
 		Role:     "admin",
 	}, &res)
 	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
+}
+
+func TestDeleteUser_Success(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	req := api.CreateUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Password: testutil.FakePassword(),
+		Role:     "member",
+	}
+	var res api.CreateUserResponse
+	httpRes, err := sdk.CreateUser(req, &res)
+	require.NoError(t, err, "error making create user request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	httpRes, err = sdk.DeleteUser(res.Data.ID)
+	require.NoError(t, err, "error making delete user request")
+	require.Equal(t, http.StatusNoContent, httpRes.StatusCode)
+}
+
+func TestDeleteUser_OnlyAdminsCanDelete(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	memberReq := api.CreateUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Password: testutil.FakePassword(),
+		Role:     "member",
+	}
+	var res api.CreateUserResponse
+	httpRes, err := sdk.CreateUser(memberReq, &res)
+	require.NoError(t, err, "error making create user request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	memberSDK := tEnv.AuthSDK(memberReq.Email, memberReq.Password)
+	httpRes, err = memberSDK.DeleteUser(res.Data.ID)
+	require.NoError(t, err, "error making delete user request")
+	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
+}
+
+func TestDeleteUser_CantSelfDelete(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	httpRes, err := sdk.DeleteUser(setup.Res().Data.ID)
+	require.NoError(t, err, "error making delete user request")
 	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
 }

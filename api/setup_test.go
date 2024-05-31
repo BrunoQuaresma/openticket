@@ -21,8 +21,10 @@ func TestSetup_Validation(t *testing.T) {
 	defer tEnv.Close()
 
 	t.Run("required fields", func(t *testing.T) {
-		var req api.SetupRequest
-		var res api.Response[any]
+		var (
+			req api.SetupRequest
+			res api.SetupResponse
+		)
 		sdk := tEnv.SDK()
 		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
@@ -41,7 +43,7 @@ func TestSetup_Validation(t *testing.T) {
 			Email:    "invalid-email",
 			Password: testutil.FakePassword(),
 		}
-		var res api.Response[any]
+		var res api.SetupResponse
 		sdk := tEnv.SDK()
 		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
@@ -58,7 +60,7 @@ func TestSetup_Validation(t *testing.T) {
 			Password: "no8char",
 		}
 
-		var res api.Response[any]
+		var res api.SetupResponse
 		sdk := tEnv.SDK()
 		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
@@ -83,7 +85,7 @@ func TestSetup(t *testing.T) {
 		Password: testutil.FakePassword(),
 	}
 
-	var res api.Response[any]
+	var res api.SetupResponse
 	httpRes, err := sdk.Setup(req, &res)
 	require.NoError(t, err, "error making the first request")
 	require.Equal(t, http.StatusOK, httpRes.StatusCode)

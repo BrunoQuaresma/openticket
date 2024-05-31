@@ -8,7 +8,7 @@ import (
 	"github.com/BrunoQuaresma/openticket/api"
 )
 
-func (c *Client) Setup(req api.SetupRequest, res *api.Response[any]) (*http.Response, error) {
+func (c *Client) Setup(req api.SetupRequest, res *api.SetupResponse) (*http.Response, error) {
 	b, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
