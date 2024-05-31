@@ -6,7 +6,6 @@ import (
 
 	"github.com/BrunoQuaresma/openticket/api"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
-	"github.com/BrunoQuaresma/openticket/sdk"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +17,7 @@ func TestCreateUser_Authentication(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()
-	sdk := sdk.New(tEnv.Server().URL())
+	sdk := tEnv.SDK()
 
 	httpRes, err := sdk.CreateUser(api.CreateUserRequest{}, &api.CreateUserResponse{})
 	require.NoError(t, err, "error making create user request")
@@ -32,14 +31,7 @@ func TestCreateUser_Validation(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	setupReq := tEnv.Setup()
-	sdk := sdk.New(tEnv.Server().URL())
-	var loginRes api.LoginResponse
-	_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
-		Email:    setupReq.Email,
-		Password: setupReq.Password,
-	}), &loginRes)
-	require.NoError(t, err, "error making login request")
-	sdk.Authenticate(loginRes.Data.SessionToken)
+	sdk := tEnv.AuthSDK(setupReq.Email, setupReq.Password)
 
 	t.Run("required fields", func(t *testing.T) {
 		var req api.CreateUserRequest
@@ -154,14 +146,7 @@ func TestCreateUser(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	setupReq := tEnv.Setup()
-	sdk := sdk.New(tEnv.Server().URL())
-	var loginRes api.LoginResponse
-	_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
-		Email:    setupReq.Email,
-		Password: setupReq.Password,
-	}), &loginRes)
-	require.NoError(t, err, "error making login request")
-	sdk.Authenticate(loginRes.Data.SessionToken)
+	sdk := tEnv.AuthSDK(setupReq.Email, setupReq.Password)
 
 	req := api.CreateUserRequest{
 		Name:     gofakeit.Name(),

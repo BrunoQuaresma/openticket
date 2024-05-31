@@ -6,7 +6,6 @@ import (
 
 	"github.com/BrunoQuaresma/openticket/api"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
-	"github.com/BrunoQuaresma/openticket/sdk"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +43,7 @@ func TestAuthRequired(t *testing.T) {
 	})
 
 	t.Run("valid token", func(t *testing.T) {
-		sdk := sdk.New(tEnv.Server().URL())
+		sdk := tEnv.SDK()
 		var loginRes api.LoginResponse
 		_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
 			Email:    setupReq.Email,
@@ -69,7 +68,7 @@ func TestLogin_ValidCredentials(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	setupReq := tEnv.Setup()
-	sdk := sdk.New(tEnv.Server().URL())
+	sdk := tEnv.SDK()
 
 	var res api.LoginResponse
 	httpRes, err := sdk.Login(api.LoginRequest{
@@ -89,7 +88,7 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	setupReq := tEnv.Setup()
-	sdk := sdk.New(tEnv.Server().URL())
+	sdk := tEnv.SDK()
 
 	t.Run("wrong email", func(t *testing.T) {
 		httpRes, err := sdk.Login(api.LoginRequest{

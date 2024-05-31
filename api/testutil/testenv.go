@@ -64,7 +64,7 @@ func (tEnv *TestEnv) Setup() api.SetupRequest {
 		Password: FakePassword(),
 	}
 	var res api.Response[any]
-	sdk := sdk.New(tEnv.Server().URL())
+	sdk := tEnv.SDK()
 	_, err := sdk.Setup(req, &res)
 	if err != nil {
 		tEnv.t.Fatal("error making setup request: " + err.Error())
@@ -74,6 +74,24 @@ func (tEnv *TestEnv) Setup() api.SetupRequest {
 
 func (tEnv *TestEnv) DBQueries() *database.Queries {
 	return tEnv.server.DBQueries()
+}
+
+func (tEnv *TestEnv) SDK() *sdk.Client {
+	return sdk.New(tEnv.Server().URL())
+}
+
+func (tEnv *TestEnv) AuthSDK(email string, password string) *sdk.Client {
+	sdk := tEnv.SDK()
+	var loginRes api.LoginResponse
+	_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
+		Email:    email,
+		Password: password,
+	}), &loginRes)
+	if err != nil {
+		tEnv.t.Fatal("error making login request" + err.Error())
+	}
+	sdk.Authenticate(loginRes.Data.SessionToken)
+	return sdk
 }
 
 func getFreePort() (port int, err error) {
