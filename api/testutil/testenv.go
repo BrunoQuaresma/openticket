@@ -30,7 +30,7 @@ func NewEnv(t *testing.T) *TestEnv {
 	if err != nil {
 		t.Fatal("error getting free port for server: " + err.Error())
 	}
-	tEnv.server = api.New(api.Options{
+	tEnv.server = api.NewServer(api.ServerOptions{
 		DatabaseURL: tEnv.database.URL(),
 		Mode:        api.TestMode,
 		Port:        port,
@@ -52,10 +52,6 @@ func (tEnv *TestEnv) Close() {
 	tEnv.server.Close()
 }
 
-func (tEnv *TestEnv) URL() string {
-	return "http://localhost" + tEnv.server.Addr()
-}
-
 func (tEnv *TestEnv) Server() *api.Server {
 	return tEnv.server
 }
@@ -68,7 +64,7 @@ func (tEnv *TestEnv) Setup() api.SetupRequest {
 		Password: FakePassword(),
 	}
 	var res api.Response[any]
-	sdk := sdk.New(tEnv.URL())
+	sdk := sdk.New(tEnv.Server().URL())
 	_, err := sdk.Setup(req, &res)
 	if err != nil {
 		tEnv.t.Fatal("error making setup request: " + err.Error())

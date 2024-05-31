@@ -18,7 +18,7 @@ type SetupRequest struct {
 
 func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
-	server.ParseJSONRequest(c, &req)
+	server.JSONRequest(c, &req)
 
 	ctx := context.Background()
 	dbQueries := server.DBQueries()

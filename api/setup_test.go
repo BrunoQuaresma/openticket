@@ -24,7 +24,7 @@ func TestSetup_Validation(t *testing.T) {
 	t.Run("required fields", func(t *testing.T) {
 		var req api.SetupRequest
 		var res api.Response[any]
-		sdk := sdk.New(tEnv.URL())
+		sdk := sdk.New(tEnv.Server().URL())
 		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
@@ -43,7 +43,7 @@ func TestSetup_Validation(t *testing.T) {
 			Password: testutil.FakePassword(),
 		}
 		var res api.Response[any]
-		sdk := sdk.New(tEnv.URL())
+		sdk := sdk.New(tEnv.Server().URL())
 		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
@@ -60,7 +60,7 @@ func TestSetup_Validation(t *testing.T) {
 		}
 
 		var res api.Response[any]
-		sdk := sdk.New(tEnv.URL())
+		sdk := sdk.New(tEnv.Server().URL())
 		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
@@ -75,7 +75,7 @@ func TestSetup(t *testing.T) {
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	sdk := sdk.New(tEnv.URL())
+	sdk := sdk.New(tEnv.Server().URL())
 
 	req := api.SetupRequest{
 		Name:     gofakeit.Name(),

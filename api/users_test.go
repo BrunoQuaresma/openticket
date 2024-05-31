@@ -18,7 +18,7 @@ func TestCreateUser_Authentication(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()
-	sdk := sdk.New(tEnv.URL())
+	sdk := sdk.New(tEnv.Server().URL())
 
 	httpRes, err := sdk.CreateUser(api.CreateUserRequest{}, &api.CreateUserResponse{})
 	require.NoError(t, err, "error making create user request")
@@ -32,7 +32,7 @@ func TestCreateUser_Validation(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	setupReq := tEnv.Setup()
-	sdk := sdk.New(tEnv.URL())
+	sdk := sdk.New(tEnv.Server().URL())
 	var loginRes api.LoginResponse
 	_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
 		Email:    setupReq.Email,
@@ -154,7 +154,7 @@ func TestCreateUser(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	setupReq := tEnv.Setup()
-	sdk := sdk.New(tEnv.URL())
+	sdk := sdk.New(tEnv.Server().URL())
 	var loginRes api.LoginResponse
 	_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
 		Email:    setupReq.Email,

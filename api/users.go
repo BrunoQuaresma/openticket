@@ -30,7 +30,7 @@ type CreateUserResponse = Response[User]
 
 func (server *Server) createUser(c *gin.Context) {
 	var req CreateUserRequest
-	server.ParseJSONRequest(c, &req)
+	server.JSONRequest(c, &req)
 
 	ctx := context.Background()
 	dbQueries := server.DBQueries()

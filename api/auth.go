@@ -51,7 +51,7 @@ type LoginResponse = Response[struct {
 
 func (server *Server) login(c *gin.Context) {
 	var req LoginRequest
-	server.ParseJSONRequest(c, &req)
+	server.JSONRequest(c, &req)
 
 	ctx := context.Background()
 	dbQueries := server.DBQueries()

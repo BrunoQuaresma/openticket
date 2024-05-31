@@ -28,7 +28,7 @@ const (
 	ProductionMode = "production"
 )
 
-type Options struct {
+type ServerOptions struct {
 	DatabaseURL string
 	Port        int
 	Mode        string
@@ -44,7 +44,7 @@ type Response[T any] struct {
 	Errors []ValidationError `json:"errors"`
 }
 
-func New(options Options) *Server {
+func NewServer(options ServerOptions) *Server {
 	var server Server
 
 	dbCtx := context.Background()
@@ -117,7 +117,7 @@ func (server *Server) Start() {
 		)
 
 		for res == nil || res.StatusCode != http.StatusOK {
-			res, err = http.Get("http://localhost" + server.Addr() + "/health")
+			res, err = http.Get(server.URL() + "/health")
 			if err != nil {
 				panic("error getting health check. " + err.Error())
 			}
@@ -128,26 +128,30 @@ func (server *Server) Start() {
 	<-ready
 }
 
-func (api *Server) Close() {
-	api.httpServer.Close()
-	api.db.Close()
+func (server *Server) URL() string {
+	return "http://localhost" + server.Addr()
 }
 
-func (api *Server) Addr() string {
-	return api.httpServer.Addr
+func (server *Server) Close() {
+	server.httpServer.Close()
+	server.db.Close()
 }
 
-func (api *Server) BeginTX(ctx context.Context) (pgx.Tx, error) {
-	return api.db.Begin(ctx)
+func (server *Server) Addr() string {
+	return server.httpServer.Addr
 }
 
-func (api *Server) DBQueries() *sqlc.Queries {
-	return api.dbQueries
+func (server *Server) BeginTX(ctx context.Context) (pgx.Tx, error) {
+	return server.db.Begin(ctx)
 }
 
-func (api *Server) ParseJSONRequest(c *gin.Context, req any) {
+func (server *Server) DBQueries() *sqlc.Queries {
+	return server.dbQueries
+}
+
+func (server *Server) JSONRequest(c *gin.Context, req any) {
 	c.BindJSON(req)
-	err := api.validate.Struct(req)
+	err := server.validate.Struct(req)
 
 	if err == nil {
 		return

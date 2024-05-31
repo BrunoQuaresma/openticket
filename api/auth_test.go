@@ -28,14 +28,14 @@ func TestAuthRequired(t *testing.T) {
 	setupReq := tEnv.Setup()
 
 	t.Run("no token", func(t *testing.T) {
-		res, err := http.Get(tEnv.URL() + "/admin/test")
+		res, err := http.Get(tEnv.Server().URL() + "/admin/test")
 		require.NoError(t, err, "error making admin test request")
 		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "expect unauthorized status code")
 	})
 
 	t.Run("invalid token", func(t *testing.T) {
 		var client http.Client
-		req, err := http.NewRequest("GET", tEnv.URL()+"/admin/test", nil)
+		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
 		require.NoError(t, err, "error creating request")
 		req.Header.Set(api.SessionTokenHeader, "invalid-token")
 		res, err := client.Do(req)
@@ -44,7 +44,7 @@ func TestAuthRequired(t *testing.T) {
 	})
 
 	t.Run("valid token", func(t *testing.T) {
-		sdk := sdk.New(tEnv.URL())
+		sdk := sdk.New(tEnv.Server().URL())
 		var loginRes api.LoginResponse
 		_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
 			Email:    setupReq.Email,
@@ -53,7 +53,7 @@ func TestAuthRequired(t *testing.T) {
 		require.NoError(t, err, "error making login request")
 
 		var client http.Client
-		req, err := http.NewRequest("GET", tEnv.URL()+"/admin/test", nil)
+		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
 		require.NoError(t, err, "error creating request")
 		req.Header.Set(api.SessionTokenHeader, loginRes.Data.SessionToken)
 		res, err := client.Do(req)
@@ -69,7 +69,7 @@ func TestLogin_ValidCredentials(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	setupReq := tEnv.Setup()
-	sdk := sdk.New(tEnv.URL())
+	sdk := sdk.New(tEnv.Server().URL())
 
 	var res api.LoginResponse
 	httpRes, err := sdk.Login(api.LoginRequest{
@@ -89,7 +89,7 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 	tEnv.Start()
 	defer tEnv.Close()
 	setupReq := tEnv.Setup()
-	sdk := sdk.New(tEnv.URL())
+	sdk := sdk.New(tEnv.Server().URL())
 
 	t.Run("wrong email", func(t *testing.T) {
 		httpRes, err := sdk.Login(api.LoginRequest{
