@@ -6,6 +6,7 @@ import (
 
 	"github.com/BrunoQuaresma/openticket/api"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
+	"github.com/BrunoQuaresma/openticket/sdk"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +14,7 @@ import (
 func TestAuthRequired(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv()
+	tEnv := testutil.NewEnv(t)
 	server := tEnv.Server()
 	server.Extend(func(r *gin.Engine) {
 		authorized := r.Group("/admin")
@@ -24,7 +25,7 @@ func TestAuthRequired(t *testing.T) {
 	})
 	tEnv.Start()
 	defer tEnv.Close()
-	tEnv.Setup()
+	setupReq := tEnv.Setup()
 
 	t.Run("no token", func(t *testing.T) {
 		res, err := http.Get(tEnv.URL() + "/admin/test")
@@ -43,10 +44,12 @@ func TestAuthRequired(t *testing.T) {
 	})
 
 	t.Run("valid token", func(t *testing.T) {
-		sdk := tEnv.SDK()
-		credentials := tEnv.AdminCredentials()
+		sdk := sdk.New(tEnv.URL())
 		var loginRes api.LoginResponse
-		_, err := sdk.Login(api.LoginRequest(credentials), &loginRes)
+		_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
+			Email:    setupReq.Email,
+			Password: setupReq.Password,
+		}), &loginRes)
 		require.NoError(t, err, "error making login request")
 
 		var client http.Client
@@ -62,17 +65,16 @@ func TestAuthRequired(t *testing.T) {
 func TestLogin_ValidCredentials(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv()
+	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	tEnv.Setup()
-	sdk := tEnv.SDK()
+	setupReq := tEnv.Setup()
+	sdk := sdk.New(tEnv.URL())
 
-	credentials := tEnv.AdminCredentials()
 	var res api.LoginResponse
 	httpRes, err := sdk.Login(api.LoginRequest{
-		Email:    credentials.Email,
-		Password: credentials.Password,
+		Email:    setupReq.Email,
+		Password: setupReq.Password,
 	}, &res)
 
 	require.NoError(t, err, "error making login request")
@@ -83,17 +85,16 @@ func TestLogin_ValidCredentials(t *testing.T) {
 func TestLogin_InvalidCredentials(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv()
+	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	tEnv.Setup()
-	sdk := tEnv.SDK()
+	setupReq := tEnv.Setup()
+	sdk := sdk.New(tEnv.URL())
 
 	t.Run("wrong email", func(t *testing.T) {
-		credentials := tEnv.AdminCredentials()
 		httpRes, err := sdk.Login(api.LoginRequest{
-			Email:    "wrong" + credentials.Email,
-			Password: credentials.Password,
+			Email:    "wrong" + setupReq.Email,
+			Password: setupReq.Password,
 		}, &api.LoginResponse{})
 
 		require.NoError(t, err, "error making login request")
@@ -101,10 +102,9 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 	})
 
 	t.Run("wrong password", func(t *testing.T) {
-		credentials := tEnv.AdminCredentials()
 		httpRes, err := sdk.Login(api.LoginRequest{
-			Email:    credentials.Email,
-			Password: "wrong" + credentials.Password,
+			Email:    setupReq.Email,
+			Password: "wrong" + setupReq.Password,
 		}, &api.LoginResponse{})
 
 		require.NoError(t, err, "error making login request")

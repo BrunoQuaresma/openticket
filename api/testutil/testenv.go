@@ -3,7 +3,7 @@ package testutil
 import (
 	"io"
 	"net"
-	"os"
+	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
@@ -11,40 +11,24 @@ import (
 	"github.com/brianvoe/gofakeit"
 )
 
-type Credentials struct {
-	Email    string
-	Password string
-}
-
 type TestEnv struct {
-	debug            bool
-	database         *TestDatabase
-	server           *api.Server
-	sdk              *sdk.Client
-	adminCredentials Credentials
+	database *TestDatabase
+	server   *api.Server
+	t        *testing.T
 }
 
-func NewEnv() *TestEnv {
-	var tEnv TestEnv
-
-	logger := io.Discard
-	if tEnv.debug {
-		logger = os.Stdout
-	}
+func NewEnv(t *testing.T) *TestEnv {
+	tEnv := TestEnv{t: t}
 
 	dbPort, err := getFreePort()
 	if err != nil {
-		panic("error getting free port: " + err.Error())
+		t.Fatal("error getting free port for db: " + err.Error())
 	}
 	tEnv.database = NewTestDatabase(dbPort)
-	err = tEnv.database.Start(logger)
-	if err != nil {
-		panic("error starting test database: " + err.Error())
-	}
 
 	port, err := getFreePort()
 	if err != nil {
-		panic("error getting free port: " + err.Error())
+		t.Fatal("error getting free port for server: " + err.Error())
 	}
 	tEnv.server = api.New(api.Options{
 		DatabaseURL: tEnv.database.URL(),
@@ -55,6 +39,11 @@ func NewEnv() *TestEnv {
 }
 
 func (tEnv *TestEnv) Start() {
+	err := tEnv.database.Start(io.Discard)
+	if err != nil {
+		tEnv.t.Fatal("error starting test database: " + err.Error())
+	}
+
 	tEnv.server.Start()
 }
 
@@ -67,53 +56,28 @@ func (tEnv *TestEnv) URL() string {
 	return "http://localhost" + tEnv.server.Addr()
 }
 
-func (tEnv *TestEnv) SDK() *sdk.Client {
-	if tEnv.sdk == nil {
-		tEnv.sdk = sdk.New(tEnv.URL())
-	}
-	return tEnv.sdk
-}
-
 func (tEnv *TestEnv) Server() *api.Server {
 	return tEnv.server
 }
 
-func (tEnv *TestEnv) Setup() {
-	credentials := Credentials{
+func (tEnv *TestEnv) Setup() api.SetupRequest {
+	req := api.SetupRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
 		Email:    gofakeit.Email(),
 		Password: FakePassword(),
 	}
-	tEnv.adminCredentials = credentials
-
 	var res api.Response[any]
-	_, err := tEnv.SDK().Setup(api.SetupRequest{
-		Name:     gofakeit.Name(),
-		Username: gofakeit.Username(),
-		Email:    credentials.Email,
-		Password: credentials.Password,
-	}, &res)
+	sdk := sdk.New(tEnv.URL())
+	_, err := sdk.Setup(req, &res)
 	if err != nil {
-		panic("error making setup request: " + err.Error())
+		tEnv.t.Fatal("error making setup request: " + err.Error())
 	}
-}
-
-func (tEnv *TestEnv) AdminCredentials() Credentials {
-	return tEnv.adminCredentials
+	return req
 }
 
 func (tEnv *TestEnv) DBQueries() *database.Queries {
 	return tEnv.server.DBQueries()
-}
-
-func (tEnv *TestEnv) Authenticate(credentials Credentials) error {
-	var loginRes api.LoginResponse
-	sdk := tEnv.SDK()
-	_, err := sdk.Login(api.LoginRequest(credentials), &loginRes)
-	if err != nil {
-		return err
-	}
-	sdk.Authenticate(loginRes.Data.SessionToken)
-	return nil
 }
 
 func getFreePort() (port int, err error) {

@@ -8,6 +8,7 @@ import (
 	"github.com/BrunoQuaresma/openticket/api"
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
+	"github.com/BrunoQuaresma/openticket/sdk"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
@@ -16,14 +17,15 @@ import (
 func TestSetup_Validation(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv()
+	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
 
 	t.Run("required fields", func(t *testing.T) {
 		var req api.SetupRequest
 		var res api.Response[any]
-		httpRes, err := tEnv.SDK().Setup(req, &res)
+		sdk := sdk.New(tEnv.URL())
+		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
@@ -41,7 +43,8 @@ func TestSetup_Validation(t *testing.T) {
 			Password: testutil.FakePassword(),
 		}
 		var res api.Response[any]
-		httpRes, err := tEnv.SDK().Setup(req, &res)
+		sdk := sdk.New(tEnv.URL())
+		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
@@ -57,7 +60,8 @@ func TestSetup_Validation(t *testing.T) {
 		}
 
 		var res api.Response[any]
-		httpRes, err := tEnv.SDK().Setup(req, &res)
+		sdk := sdk.New(tEnv.URL())
+		httpRes, err := sdk.Setup(req, &res)
 		require.NoError(t, err, "error making request")
 
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
@@ -68,10 +72,10 @@ func TestSetup_Validation(t *testing.T) {
 func TestSetup(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv()
+	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	sdk := tEnv.SDK()
+	sdk := sdk.New(tEnv.URL())
 
 	req := api.SetupRequest{
 		Name:     gofakeit.Name(),

@@ -6,6 +6,7 @@ import (
 
 	"github.com/BrunoQuaresma/openticket/api"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
+	"github.com/BrunoQuaresma/openticket/sdk"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/require"
 )
@@ -13,11 +14,11 @@ import (
 func TestCreateUser_Authentication(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv()
+	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
 	tEnv.Setup()
-	sdk := tEnv.SDK()
+	sdk := sdk.New(tEnv.URL())
 
 	httpRes, err := sdk.CreateUser(api.CreateUserRequest{}, &api.CreateUserResponse{})
 	require.NoError(t, err, "error making create user request")
@@ -27,16 +28,23 @@ func TestCreateUser_Authentication(t *testing.T) {
 func TestCreateUser_Validation(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv()
+	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	tEnv.Setup()
-	tEnv.Authenticate(tEnv.AdminCredentials())
+	setupReq := tEnv.Setup()
+	sdk := sdk.New(tEnv.URL())
+	var loginRes api.LoginResponse
+	_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
+		Email:    setupReq.Email,
+		Password: setupReq.Password,
+	}), &loginRes)
+	require.NoError(t, err, "error making login request")
+	sdk.Authenticate(loginRes.Data.SessionToken)
 
 	t.Run("required fields", func(t *testing.T) {
 		var req api.CreateUserRequest
 		var res api.CreateUserResponse
-		httpRes, err := tEnv.SDK().CreateUser(req, &res)
+		httpRes, err := sdk.CreateUser(req, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
 		testutil.RequireValidationError(t, res.Errors, "name", "required")
@@ -55,7 +63,7 @@ func TestCreateUser_Validation(t *testing.T) {
 			Role:     "member",
 		}
 		var res api.CreateUserResponse
-		httpRes, err := tEnv.SDK().CreateUser(req, &res)
+		httpRes, err := sdk.CreateUser(req, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
 		testutil.RequireValidationError(t, res.Errors, "email", "email")
@@ -70,7 +78,7 @@ func TestCreateUser_Validation(t *testing.T) {
 			Role:     "member",
 		}
 		var res api.CreateUserResponse
-		httpRes, err := tEnv.SDK().CreateUser(req, &res)
+		httpRes, err := sdk.CreateUser(req, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
 		testutil.RequireValidationError(t, res.Errors, "password", "min")
@@ -86,7 +94,7 @@ func TestCreateUser_Validation(t *testing.T) {
 		}
 
 		var res api.CreateUserResponse
-		httpRes, err := tEnv.SDK().CreateUser(req, &res)
+		httpRes, err := sdk.CreateUser(req, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
 		testutil.RequireValidationError(t, res.Errors, "role", "oneof")
@@ -102,14 +110,14 @@ func TestCreateUser_Validation(t *testing.T) {
 		}
 
 		var res api.CreateUserResponse
-		httpRes, err := tEnv.SDK().CreateUser(req, &res)
+		httpRes, err := sdk.CreateUser(req, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusCreated, httpRes.StatusCode)
 
 		// Use a different username to avoid unique constraint violation. We only
 		// care about email.
 		req.Username = gofakeit.Username()
-		httpRes, err = tEnv.SDK().CreateUser(req, &res)
+		httpRes, err = sdk.CreateUser(req, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
 		testutil.RequireValidationError(t, res.Errors, "email", "unique")
@@ -125,14 +133,14 @@ func TestCreateUser_Validation(t *testing.T) {
 		}
 
 		var res api.CreateUserResponse
-		httpRes, err := tEnv.SDK().CreateUser(req, &res)
+		httpRes, err := sdk.CreateUser(req, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusCreated, httpRes.StatusCode)
 
 		// Use a different email to avoid unique constraint violation. We only care
 		// about username.
 		req.Email = gofakeit.Email()
-		httpRes, err = tEnv.SDK().CreateUser(req, &res)
+		httpRes, err = sdk.CreateUser(req, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusBadRequest, httpRes.StatusCode)
 		testutil.RequireValidationError(t, res.Errors, "username", "unique")
@@ -142,11 +150,18 @@ func TestCreateUser_Validation(t *testing.T) {
 func TestCreateUser(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv()
+	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
 	defer tEnv.Close()
-	tEnv.Setup()
-	tEnv.Authenticate(tEnv.AdminCredentials())
+	setupReq := tEnv.Setup()
+	sdk := sdk.New(tEnv.URL())
+	var loginRes api.LoginResponse
+	_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
+		Email:    setupReq.Email,
+		Password: setupReq.Password,
+	}), &loginRes)
+	require.NoError(t, err, "error making login request")
+	sdk.Authenticate(loginRes.Data.SessionToken)
 
 	req := api.CreateUserRequest{
 		Name:     gofakeit.Name(),
@@ -157,7 +172,7 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	var res api.CreateUserResponse
-	httpRes, err := tEnv.SDK().CreateUser(req, &res)
+	httpRes, err := sdk.CreateUser(req, &res)
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
 
