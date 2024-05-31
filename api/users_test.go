@@ -139,7 +139,7 @@ func TestCreateUser_Validation(t *testing.T) {
 	})
 }
 
-func TestCreateUser(t *testing.T) {
+func TestCreateUser_Success(t *testing.T) {
 	t.Parallel()
 
 	tEnv := testutil.NewEnv(t)
@@ -166,4 +166,37 @@ func TestCreateUser(t *testing.T) {
 	require.Equal(t, req.Username, res.Data.Username)
 	require.Equal(t, req.Email, res.Data.Email)
 	require.Equal(t, req.Role, res.Data.Role)
+}
+
+func TestCreateUser_OnlyAdminsCanCreateAdmins(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setupReq := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setupReq.Email, setupReq.Password)
+
+	memberReq := api.CreateUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Password: testutil.FakePassword(),
+		Role:     "member",
+	}
+	var res api.CreateUserResponse
+	httpRes, err := sdk.CreateUser(memberReq, &res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	memberSDK := tEnv.AuthSDK(memberReq.Email, memberReq.Password)
+	httpRes, err = memberSDK.CreateUser(api.CreateUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Password: testutil.FakePassword(),
+		Role:     "admin",
+	}, &res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
 }

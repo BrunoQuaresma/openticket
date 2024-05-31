@@ -29,6 +29,12 @@ type User struct {
 type CreateUserResponse = Response[User]
 
 func (server *Server) createUser(c *gin.Context) {
+	user := server.AuthUser(c)
+	if user.Role != "admin" {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+
 	var req CreateUserRequest
 	server.JSONRequest(c, &req)
 

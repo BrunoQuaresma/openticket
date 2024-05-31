@@ -129,16 +129,12 @@ func (server *Server) Start() {
 }
 
 func (server *Server) URL() string {
-	return "http://localhost" + server.Addr()
+	return "http://localhost" + server.httpServer.Addr
 }
 
 func (server *Server) Close() {
 	server.httpServer.Close()
 	server.db.Close()
-}
-
-func (server *Server) Addr() string {
-	return server.httpServer.Addr
 }
 
 func (server *Server) BeginTX(ctx context.Context) (pgx.Tx, error) {

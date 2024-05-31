@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
+	"net/http"
 	"time"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
@@ -16,6 +18,7 @@ import (
 )
 
 const SessionTokenHeader = "OPENTICKET-SESSION-TOKEN"
+const userCtxKey = "user"
 
 func (server *Server) AuthRequired(c *gin.Context) {
 	sessionToken := c.Request.Header.Get(SessionTokenHeader)
@@ -37,7 +40,24 @@ func (server *Server) AuthRequired(c *gin.Context) {
 		c.AbortWithStatus(401)
 		return
 	}
+
+	user, err := queries.GetUserByID(ctx, session.UserID)
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
+
+	c.Set(userCtxKey, user)
 	c.Next()
+}
+
+func (server *Server) AuthUser(c *gin.Context) database.User {
+	user, err := c.Get(userCtxKey)
+	if !err {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("user not found in context"))
+		return database.User{}
+	}
+	return user.(database.User)
 }
 
 type LoginRequest struct {
