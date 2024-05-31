@@ -40,8 +40,9 @@ type ValidationError struct {
 }
 
 type Response[T any] struct {
-	Data   T                 `json:"data,omitempty"`
-	Errors []ValidationError `json:"errors"`
+	Data    T                 `json:"data,omitempty"`
+	Errors  []ValidationError `json:"errors,omitempty"`
+	Message string            `json:"message,omitempty"`
 }
 
 func NewServer(options ServerOptions) *Server {

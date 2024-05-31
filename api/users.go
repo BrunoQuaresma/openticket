@@ -32,7 +32,7 @@ type CreateUserResponse = Response[User]
 func (server *Server) createUser(c *gin.Context) {
 	user := server.AuthUser(c)
 	if user.Role != "admin" {
-		c.AbortWithStatus(http.StatusForbidden)
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can create users"})
 		return
 	}
 
@@ -53,6 +53,7 @@ func (server *Server) createUser(c *gin.Context) {
 	if err == nil {
 		var res Response[any]
 		res.Errors = append(res.Errors, ValidationError{Field: "email", Validator: "unique"})
+		res.Message = "email already in use"
 		c.AbortWithStatusJSON(http.StatusBadRequest, res)
 		return
 	}
@@ -65,6 +66,7 @@ func (server *Server) createUser(c *gin.Context) {
 	if err == nil {
 		var res Response[any]
 		res.Errors = append(res.Errors, ValidationError{Field: "username", Validator: "unique"})
+		res.Message = "username already in use"
 		c.AbortWithStatusJSON(http.StatusBadRequest, res)
 		return
 	}
@@ -86,7 +88,6 @@ func (server *Server) createUser(c *gin.Context) {
 		PasswordHash: string(h),
 		Role:         database.Role(req.Role),
 	})
-
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -109,18 +110,18 @@ func (server *Server) createUser(c *gin.Context) {
 func (server *Server) deleteUser(c *gin.Context) {
 	user := server.AuthUser(c)
 	if user.Role != "admin" {
-		c.AbortWithStatus(http.StatusForbidden)
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can delete users"})
 		return
 	}
 
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "user not found"})
 		return
 	}
 
 	if user.ID == int32(id) {
-		c.AbortWithStatus(http.StatusForbidden)
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "you can't delete yourself"})
 		return
 	}
 

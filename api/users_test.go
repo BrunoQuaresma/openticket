@@ -168,7 +168,7 @@ func TestCreateUser_Success(t *testing.T) {
 	require.Equal(t, req.Role, res.Data.Role)
 }
 
-func TestCreateUser_OnlyAdminsCanCreateAdmins(t *testing.T) {
+func TestCreateUser_OnlyAdminsCanCreate(t *testing.T) {
 	t.Parallel()
 
 	tEnv := testutil.NewEnv(t)
