@@ -69,3 +69,32 @@ func (client *Client) Delete(path string) (*http.Response, error) {
 	}
 	return httpRes, nil
 }
+
+func (client *Client) Patch(path string, req any, res any) (*http.Response, error) {
+	b, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var httpClient http.Client
+	httpReq, err := http.NewRequest("PATCH", client.url+path, bytes.NewBuffer(b))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Application-Type", "application/json")
+	if client.sessionToken != "" {
+		httpReq.Header.Set(api.SessionTokenHeader, client.sessionToken)
+	}
+	httpRes, err := httpClient.Do(httpReq)
+	if err != nil {
+		return httpRes, err
+	}
+	if httpRes.Body != http.NoBody {
+		defer httpRes.Body.Close()
+		err = json.NewDecoder(httpRes.Body).Decode(res)
+		if err != nil {
+			return httpRes, err
+		}
+	}
+	return httpRes, nil
+}

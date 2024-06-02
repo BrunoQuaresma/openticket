@@ -1,7 +1,7 @@
 -- name: CreateUser :one
 INSERT INTO users (name, username, email, password_hash, profile_picture_url, role)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, name, username, email, profile_picture_url, created_at, updated_at, role;
+RETURNING *;
 
 -- name: GetUserByEmail :one
 SELECT * FROM users WHERE email = $1 LIMIT 1;
@@ -17,3 +17,9 @@ SELECT * FROM users WHERE id = $1 LIMIT 1;
 
 -- name: DeleteUserByID :exec
 DELETE FROM users WHERE id = $1;
+
+-- name: UpdateUserByID :one
+UPDATE users
+SET name = $2, username = $3, email = $4, profile_picture_url = $5, role = $6, updated_at = NOW()
+WHERE id = $1
+RETURNING *;

@@ -267,3 +267,41 @@ func TestDeleteUser_CantSelfDelete(t *testing.T) {
 	require.NoError(t, err, "error making delete user request")
 	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
 }
+
+func TestPatchUser_Success(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	createUserReq := api.CreateUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Role:     "admin",
+		Password: testutil.FakePassword(),
+	}
+	var newUserRes api.CreateUserResponse
+	httpRes, err := sdk.CreateUser(createUserReq, &newUserRes)
+	require.NoError(t, err, "error making create user request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	patchUserReq := api.PatchUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Role:     "admin",
+	}
+	var updatedUserRes api.PatchUserResponse
+	httpRes, err = sdk.PatchUser(newUserRes.Data.ID, patchUserReq, &updatedUserRes)
+	require.NoError(t, err, "error making patch user request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+	require.Equal(t, patchUserReq.Name, updatedUserRes.Data.Name)
+	require.Equal(t, patchUserReq.Username, updatedUserRes.Data.Username)
+	require.Equal(t, patchUserReq.Email, updatedUserRes.Data.Email)
+	require.Equal(t, patchUserReq.Role, updatedUserRes.Data.Role)
+}
