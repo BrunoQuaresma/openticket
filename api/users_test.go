@@ -268,7 +268,98 @@ func TestDeleteUser_CantSelfDelete(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
 }
 
-func TestPatchUser_Success(t *testing.T) {
+func TestPatchUser_CanPatchSingleField(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	t.Run("name", func(t *testing.T) {
+		createMemberReq := api.CreateUserRequest{
+			Name:     gofakeit.Name(),
+			Username: gofakeit.Username(),
+			Email:    gofakeit.Email(),
+			Role:     "member",
+			Password: testutil.FakePassword(),
+		}
+		var memberUserRes api.CreateUserResponse
+		httpRes, err := sdk.CreateUser(createMemberReq, &memberUserRes)
+		require.NoError(t, err, "error making create user request")
+		require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+		patchUserReq := api.PatchUserRequest{
+			Name: gofakeit.Name(),
+		}
+		var updatedUserRes api.PatchUserResponse
+		httpRes, err = sdk.PatchUser(memberUserRes.Data.ID, patchUserReq, &updatedUserRes)
+		require.NoError(t, err, "error making patch user request")
+		require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+		require.Equal(t, patchUserReq.Name, updatedUserRes.Data.Name)
+		require.Equal(t, memberUserRes.Data.Username, updatedUserRes.Data.Username)
+		require.Equal(t, memberUserRes.Data.Email, updatedUserRes.Data.Email)
+		require.Equal(t, memberUserRes.Data.Role, updatedUserRes.Data.Role)
+	})
+
+	t.Run("username", func(t *testing.T) {
+		createMemberReq := api.CreateUserRequest{
+			Name:     gofakeit.Name(),
+			Username: gofakeit.Username(),
+			Email:    gofakeit.Email(),
+			Role:     "member",
+			Password: testutil.FakePassword(),
+		}
+		var memberUserRes api.CreateUserResponse
+		httpRes, err := sdk.CreateUser(createMemberReq, &memberUserRes)
+		require.NoError(t, err, "error making create user request")
+		require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+		patchUserReq := api.PatchUserRequest{
+			Username: gofakeit.Username(),
+		}
+		var updatedUserRes api.PatchUserResponse
+		httpRes, err = sdk.PatchUser(memberUserRes.Data.ID, patchUserReq, &updatedUserRes)
+		require.NoError(t, err, "error making patch user request")
+		require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+		require.Equal(t, memberUserRes.Data.Name, updatedUserRes.Data.Name)
+		require.Equal(t, patchUserReq.Username, updatedUserRes.Data.Username)
+		require.Equal(t, memberUserRes.Data.Email, updatedUserRes.Data.Email)
+		require.Equal(t, memberUserRes.Data.Role, updatedUserRes.Data.Role)
+	})
+
+	t.Run("email", func(t *testing.T) {
+		createMemberReq := api.CreateUserRequest{
+			Name:     gofakeit.Name(),
+			Username: gofakeit.Username(),
+			Email:    gofakeit.Email(),
+			Role:     "member",
+			Password: testutil.FakePassword(),
+		}
+		var memberUserRes api.CreateUserResponse
+		httpRes, err := sdk.CreateUser(createMemberReq, &memberUserRes)
+		require.NoError(t, err, "error making create user request")
+		require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+		patchUserReq := api.PatchUserRequest{
+			Email: gofakeit.Email(),
+		}
+		var updatedUserRes api.PatchUserResponse
+		httpRes, err = sdk.PatchUser(memberUserRes.Data.ID, patchUserReq, &updatedUserRes)
+		require.NoError(t, err, "error making patch user request")
+		require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+		require.Equal(t, memberUserRes.Data.Name, updatedUserRes.Data.Name)
+		require.Equal(t, memberUserRes.Data.Username, updatedUserRes.Data.Username)
+		require.Equal(t, patchUserReq.Email, updatedUserRes.Data.Email)
+		require.Equal(t, memberUserRes.Data.Role, updatedUserRes.Data.Role)
+	})
+}
+
+func TestPatchUser_AdminCanPatchOtherUsers(t *testing.T) {
 	t.Parallel()
 
 	tEnv := testutil.NewEnv(t)
@@ -281,7 +372,7 @@ func TestPatchUser_Success(t *testing.T) {
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
 		Email:    gofakeit.Email(),
-		Role:     "admin",
+		Role:     "member",
 		Password: testutil.FakePassword(),
 	}
 	var newUserRes api.CreateUserResponse
@@ -304,4 +395,125 @@ func TestPatchUser_Success(t *testing.T) {
 	require.Equal(t, patchUserReq.Username, updatedUserRes.Data.Username)
 	require.Equal(t, patchUserReq.Email, updatedUserRes.Data.Email)
 	require.Equal(t, patchUserReq.Role, updatedUserRes.Data.Role)
+}
+
+func TestPatchUser_MemberOnlyCanSelfPatch(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	createMemberReq := api.CreateUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Role:     "member",
+		Password: testutil.FakePassword(),
+	}
+	var memberUserRes api.CreateUserResponse
+	httpRes, err := sdk.CreateUser(createMemberReq, &memberUserRes)
+	require.NoError(t, err, "error making create user request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	patchMemberReq := api.PatchUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+	}
+	var updatedUserRes api.PatchUserResponse
+	memberSDK := tEnv.AuthSDK(createMemberReq.Email, createMemberReq.Password)
+	httpRes, err = memberSDK.PatchUser(memberUserRes.Data.ID, patchMemberReq, &updatedUserRes)
+	require.NoError(t, err, "error making patch user request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+	require.Equal(t, patchMemberReq.Name, updatedUserRes.Data.Name)
+	require.Equal(t, patchMemberReq.Username, updatedUserRes.Data.Username)
+	require.Equal(t, patchMemberReq.Email, updatedUserRes.Data.Email)
+	require.Equal(t, "member", updatedUserRes.Data.Role)
+
+	httpRes, err = memberSDK.PatchUser(setup.Res().Data.ID, api.PatchUserRequest{}, &api.PatchUserResponse{})
+	require.NoError(t, err, "error making patch user request")
+	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
+}
+
+func TestPatchUser_MemberCantChangeRoles(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	createMemberReq := api.CreateUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Role:     "member",
+		Password: testutil.FakePassword(),
+	}
+	var memberUserRes api.CreateUserResponse
+	httpRes, err := sdk.CreateUser(createMemberReq, &memberUserRes)
+	require.NoError(t, err, "error making create user request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	patchMemberReq := api.PatchUserRequest{
+		Role: "admin",
+	}
+	var updatedUserRes api.PatchUserResponse
+	memberSDK := tEnv.AuthSDK(createMemberReq.Email, createMemberReq.Password)
+	httpRes, err = memberSDK.PatchUser(memberUserRes.Data.ID, patchMemberReq, &updatedUserRes)
+	require.NoError(t, err, "error making patch user request")
+	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
+}
+
+func TestPatchUser_AdminCanChangeRoles(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	createMemberReq := api.CreateUserRequest{
+		Name:     gofakeit.Name(),
+		Username: gofakeit.Username(),
+		Email:    gofakeit.Email(),
+		Role:     "member",
+		Password: testutil.FakePassword(),
+	}
+	var memberUserRes api.CreateUserResponse
+	httpRes, err := sdk.CreateUser(createMemberReq, &memberUserRes)
+	require.NoError(t, err, "error making create user request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	patchMemberReq := api.PatchUserRequest{
+		Role: "admin",
+	}
+	var updatedUserRes api.PatchUserResponse
+	httpRes, err = sdk.PatchUser(memberUserRes.Data.ID, patchMemberReq, &updatedUserRes)
+	require.NoError(t, err, "error making patch user request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+	require.Equal(t, "admin", updatedUserRes.Data.Role)
+}
+
+func TestPatchUser_CantDemoteLastAdminToMember(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	adminSDK := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+	httpRes, err := adminSDK.PatchUser(
+		setup.Res().Data.ID,
+		api.PatchUserRequest{Role: "member"},
+		&api.PatchUserResponse{},
+	)
+	require.NoError(t, err, "error making patch user request")
+	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
 }

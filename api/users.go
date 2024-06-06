@@ -137,10 +137,10 @@ func (server *Server) deleteUser(c *gin.Context) {
 }
 
 type PatchUserRequest struct {
-	Name     string `json:"name" validate:"omitempty,min=3,max=50"`
-	Username string `json:"username" validate:"omitempty,min=3,max=15"`
-	Email    string `json:"email" validate:"omitempty,email"`
-	Role     string `json:"role" validate:"omitempty,oneof=admin member"`
+	Name     string `json:"name,omitempty" validate:"omitempty,min=3,max=50"`
+	Username string `json:"username,omitempty" validate:"omitempty,min=3,max=15"`
+	Email    string `json:"email,omitempty" validate:"omitempty,email"`
+	Role     string `json:"role,omitempty" validate:"omitempty,oneof=admin member"`
 }
 
 type PatchUserResponse = Response[User]
@@ -154,7 +154,7 @@ func (server *Server) patchUser(c *gin.Context) {
 
 	user := server.AuthUser(c)
 	if user.Role != "admin" && user.ID != int32(id) {
-		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can update users"})
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can update other users"})
 		return
 	}
 
@@ -177,7 +177,19 @@ func (server *Server) patchUser(c *gin.Context) {
 		return
 	}
 
-	if u.Email != req.Email {
+	params := database.UpdateUserByIDParams{
+		ID:       u.ID,
+		Name:     u.Name,
+		Username: u.Username,
+		Email:    u.Email,
+		Role:     u.Role,
+	}
+
+	if req.Name != "" {
+		params.Name = req.Name
+	}
+
+	if req.Email != "" && params.Email != req.Email {
 		_, err = qtx.GetUserByEmail(ctx, req.Email)
 		if err == nil {
 			var res Response[any]
@@ -186,13 +198,10 @@ func (server *Server) patchUser(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, res)
 			return
 		}
-		if err != pgx.ErrNoRows {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
+		params.Email = req.Email
 	}
 
-	if u.Username != req.Username {
+	if req.Username != "" && params.Username != req.Username {
 		_, err = qtx.GetUserByUsername(ctx, req.Username)
 		if err == nil {
 			var res Response[any]
@@ -201,19 +210,30 @@ func (server *Server) patchUser(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, res)
 			return
 		}
-		if err != pgx.ErrNoRows {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
+		params.Username = req.Username
 	}
 
-	u, err = qtx.UpdateUserByID(ctx, database.UpdateUserByIDParams{
-		ID:       int32(id),
-		Name:     req.Name,
-		Username: req.Username,
-		Email:    req.Email,
-		Role:     database.Role(req.Role),
-	})
+	if req.Role != "" && string(u.Role) != req.Role {
+		if user.Role != "admin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can update roles"})
+			return
+		}
+		if req.Role == "member" && u.Role == database.RoleAdmin {
+			countAdmins, err := qtx.CountAdmins(ctx)
+			if err != nil {
+				c.AbortWithError(http.StatusInternalServerError, err)
+				return
+			}
+			if countAdmins == 1 {
+				c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "can't remove the last admin"})
+				return
+			}
+		}
+
+		params.Role = database.Role(req.Role)
+	}
+
+	u, err = qtx.UpdateUserByID(ctx, params)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

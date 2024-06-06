@@ -23,3 +23,6 @@ UPDATE users
 SET name = $2, username = $3, email = $4, profile_picture_url = $5, role = $6, updated_at = NOW()
 WHERE id = $1
 RETURNING *;
+
+-- name: CountAdmins :one
+SELECT COUNT(*) FROM users WHERE role = 'admin';
