@@ -40,14 +40,12 @@ func (server *Server) createUser(c *gin.Context) {
 	server.JSONRequest(c, &req)
 
 	ctx := context.Background()
-	dbQueries := server.DBQueries()
-	tx, err := server.BeginTX(ctx)
+	tx, qtx, err := server.DBTX(ctx)
+	defer tx.Rollback(ctx)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	defer tx.Rollback(ctx)
-	qtx := dbQueries.WithTx(tx)
 
 	_, err = qtx.GetUserByEmail(ctx, req.Email)
 	if err == nil {
@@ -162,14 +160,12 @@ func (server *Server) patchUser(c *gin.Context) {
 	server.JSONRequest(c, &req)
 
 	ctx := context.Background()
-	dbQueries := server.DBQueries()
-	tx, err := server.BeginTX(ctx)
+	tx, qtx, err := server.DBTX(ctx)
+	defer tx.Rollback(ctx)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	defer tx.Rollback(ctx)
-	qtx := dbQueries.WithTx(tx)
 
 	u, err := qtx.GetUserByID(ctx, int32(id))
 	if err != nil {

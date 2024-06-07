@@ -25,15 +25,13 @@ func (server *Server) setup(c *gin.Context) {
 	server.JSONRequest(c, &req)
 
 	ctx := context.Background()
-	dbQueries := server.DBQueries()
-	tx, err := server.BeginTX(ctx)
+	tx, qtx, err := server.DBTX(ctx)
+	defer tx.Rollback(ctx)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	defer tx.Rollback(ctx)
 
-	qtx := dbQueries.WithTx(tx)
 	count, err := qtx.CountUsers(ctx)
 
 	if err != nil {

@@ -82,7 +82,6 @@ func NewServer(options ServerOptions) *Server {
 	server.router.GET("/health", server.health)
 	server.router.POST("/setup", server.setup)
 	server.router.POST("/login", server.login)
-	server.router.POST("/tickets", server.createTicket)
 
 	authenticated := server.router.Group("/")
 	authenticated.Use(server.AuthRequired)
@@ -90,6 +89,8 @@ func NewServer(options ServerOptions) *Server {
 	authenticated.POST("/users", server.createUser)
 	authenticated.DELETE("/users/:id", server.deleteUser)
 	authenticated.PATCH("/users/:id", server.patchUser)
+
+	authenticated.POST("/tickets", server.createTicket)
 
 	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
@@ -139,8 +140,12 @@ func (server *Server) Close() {
 	server.db.Close()
 }
 
-func (server *Server) BeginTX(ctx context.Context) (pgx.Tx, error) {
-	return server.db.Begin(ctx)
+func (server *Server) DBTX(ctx context.Context) (pgx.Tx, *sqlc.Queries, error) {
+	tx, err := server.db.Begin(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return tx, server.dbQueries.WithTx(tx), nil
 }
 
 func (server *Server) DBQueries() *sqlc.Queries {
