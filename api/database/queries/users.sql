@@ -1,3 +1,6 @@
+-- name: HasFirstUser :one
+SELECT EXISTS (SELECT 1 FROM users LIMIT 1);
+
 -- name: CreateUser :one
 INSERT INTO users (name, username, email, password_hash, profile_picture_url, role)
 VALUES ($1, $2, $3, $4, $5, $6)
