@@ -1,11 +1,13 @@
 package api_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
+	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,4 +56,33 @@ func TestCreateTicket_Validation(t *testing.T) {
 		testutil.RequireValidationError(t, res.Errors, "title", "required")
 		testutil.RequireValidationError(t, res.Errors, "description", "required")
 	})
+}
+
+func TestTickets_Success(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	numberOfTickets := 5
+	for i := range numberOfTickets {
+		var res api.CreateTicketResponse
+		httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+			Title:       gofakeit.JobTitle(),
+			Description: gofakeit.HackerPhrase(),
+			Labels:      []string{gofakeit.HackerAbbreviation()},
+		}, &res)
+		require.NoError(t, err, "error creating ticket")
+		require.Equal(t, http.StatusCreated, httpRes.StatusCode, "error creating ticket "+fmt.Sprint(i))
+	}
+
+	var res api.TicketsResponse
+	httpRes, err := sdk.Tickets(&res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+	require.Len(t, res.Data, numberOfTickets)
 }

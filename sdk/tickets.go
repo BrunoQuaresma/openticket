@@ -10,3 +10,8 @@ func (c *Client) CreateTicket(req api.CreateTicketRequest, res *api.CreateTicket
 	httpRes, err := c.Post("/tickets", req, res)
 	return httpRes, err
 }
+
+func (c *Client) Tickets(res *api.TicketsResponse) (*http.Response, error) {
+	httpRes, err := c.Get("/tickets", res)
+	return httpRes, err
+}

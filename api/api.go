@@ -91,6 +91,7 @@ func NewServer(options ServerOptions) *Server {
 	authenticated.PATCH("/users/:id", server.patchUser)
 
 	authenticated.POST("/tickets", server.createTicket)
+	authenticated.GET("/tickets", server.tickets)
 
 	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),

@@ -91,3 +91,35 @@ func (server *Server) createTicket(c *gin.Context) {
 		},
 	})
 }
+
+type TicketsResponse = Response[[]Ticket]
+
+func (server *Server) tickets(c *gin.Context) {
+	ctx := context.Background()
+	dbQueries := server.DBQueries()
+	result, err := dbQueries.GetTickets(ctx, []string{})
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	tickets := make([]Ticket, len(result))
+	for i, ticket := range result {
+		tickets[i] = Ticket{
+			ID:          ticket.ID,
+			Title:       ticket.Title,
+			Description: ticket.Description,
+			Labels:      ticket.Labels,
+			CreatedBy: User{
+				ID:       ticket.User.ID,
+				Name:     ticket.User.Name,
+				Username: ticket.User.Username,
+				Email:    ticket.User.Email,
+				Role:     string(ticket.User.Role),
+			},
+		}
+	}
+	c.JSON(http.StatusOK, TicketsResponse{
+		Data: tickets,
+	})
+}
