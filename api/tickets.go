@@ -96,8 +96,7 @@ type TicketsResponse = Response[[]Ticket]
 
 func (server *Server) tickets(c *gin.Context) {
 	ctx := context.Background()
-	dbQueries := server.DBQueries()
-	result, err := dbQueries.GetTickets(ctx, []string{})
+	result, err := server.dbQueries.GetTickets(ctx, []string{})
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

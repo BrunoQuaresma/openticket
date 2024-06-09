@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/BrunoQuaresma/openticket/sdk"
 	"github.com/brianvoe/gofakeit"
 )
@@ -87,10 +86,6 @@ func (tEnv *TestEnv) Setup() setup {
 		req: req,
 		res: res,
 	}
-}
-
-func (tEnv *TestEnv) DBQueries() *database.Queries {
-	return tEnv.server.DBQueries()
 }
 
 func (tEnv *TestEnv) SDK() *sdk.Client {

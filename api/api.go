@@ -149,10 +149,6 @@ func (server *Server) DBTX(ctx context.Context) (pgx.Tx, *sqlc.Queries, error) {
 	return tx, server.dbQueries.WithTx(tx), nil
 }
 
-func (server *Server) DBQueries() *sqlc.Queries {
-	return server.dbQueries
-}
-
 func (server *Server) jsonReq(c *gin.Context, req any) {
 	c.BindJSON(req)
 	err := server.validate.Struct(req)
