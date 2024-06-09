@@ -30,9 +30,12 @@ func (server *Server) createTicket(c *gin.Context) {
 	var req CreateTicketRequest
 	server.jsonReq(c, &req)
 
-	var ticket database.Ticket
-	err := server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
-		ticket, err := qtx.CreateTicket(ctx, database.CreateTicketParams{
+	var (
+		ticket database.Ticket
+		err    error
+	)
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+		ticket, err = qtx.CreateTicket(ctx, database.CreateTicketParams{
 			Title:       req.Title,
 			Description: req.Description,
 			CreatedBy:   user.ID,
