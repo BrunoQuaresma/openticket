@@ -14,7 +14,7 @@ type Health struct {
 type HealthResponse = Response[Health]
 
 func (server *Server) health(c *gin.Context) {
-	hasFirstUser, err := server.dbQueries.HasFirstUser(c)
+	hasFirstUser, err := server.db.queries.HasFirstUser(c)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

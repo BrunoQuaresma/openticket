@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	sqlc "github.com/BrunoQuaresma/openticket/api/database/gen"
+	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5"
@@ -15,11 +15,15 @@ import (
 )
 
 type Server struct {
-	db         *pgxpool.Pool
-	dbQueries  *sqlc.Queries
+	db         *ServerDB
 	validate   *validator.Validate
 	httpServer *http.Server
 	router     *gin.Engine
+}
+
+type ServerDB struct {
+	conn    *pgxpool.Pool
+	queries *database.Queries
 }
 
 const (
@@ -49,12 +53,14 @@ func NewServer(options ServerOptions) *Server {
 	var server Server
 
 	dbCtx := context.Background()
-	db, err := pgxpool.New(dbCtx, options.DatabaseURL)
+	dbConn, err := pgxpool.New(dbCtx, options.DatabaseURL)
 	if err != nil {
 		panic("error connecting to the database. " + err.Error())
 	}
-	server.db = db
-	server.dbQueries = sqlc.New(db)
+	server.db = &ServerDB{
+		conn:    dbConn,
+		queries: database.New(dbConn),
+	}
 
 	server.validate = validator.New(validator.WithRequiredStructEnabled())
 	server.validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -138,15 +144,15 @@ func (server *Server) URL() string {
 
 func (server *Server) Close() {
 	server.httpServer.Close()
-	server.db.Close()
+	server.db.conn.Close()
 }
 
-func (server *Server) DBTX(ctx context.Context) (pgx.Tx, *sqlc.Queries, error) {
-	tx, err := server.db.Begin(ctx)
+func (server *Server) DBTX(ctx context.Context) (pgx.Tx, *database.Queries, error) {
+	tx, err := server.db.conn.Begin(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	return tx, server.dbQueries.WithTx(tx), nil
+	return tx, server.db.queries.WithTx(tx), nil
 }
 
 func (server *Server) jsonReq(c *gin.Context, req any) {

@@ -124,7 +124,7 @@ func (server *Server) deleteUser(c *gin.Context) {
 	}
 
 	ctx := context.Background()
-	err = server.dbQueries.DeleteUserByID(ctx, int32(id))
+	err = server.db.queries.DeleteUserByID(ctx, int32(id))
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

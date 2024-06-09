@@ -25,7 +25,7 @@ func (server *Server) AuthRequired(c *gin.Context) {
 	ctx := context.Background()
 	sum := sha256.Sum256([]byte(sessionToken))
 	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
-	session, err := server.dbQueries.GetSessionByTokenHash(ctx, tokenHash)
+	session, err := server.db.queries.GetSessionByTokenHash(ctx, tokenHash)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -40,7 +40,7 @@ func (server *Server) AuthRequired(c *gin.Context) {
 		return
 	}
 
-	user, err := server.dbQueries.GetUserByID(ctx, session.UserID)
+	user, err := server.db.queries.GetUserByID(ctx, session.UserID)
 	if err != nil {
 		c.AbortWithError(500, err)
 		return
@@ -73,7 +73,7 @@ func (server *Server) login(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	ctx := context.Background()
-	user, err := server.dbQueries.GetUserByEmail(ctx, req.Email)
+	user, err := server.db.queries.GetUserByEmail(ctx, req.Email)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -98,7 +98,7 @@ func (server *Server) login(c *gin.Context) {
 	}
 	sum := sha256.Sum256([]byte(token))
 	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
-	_, err = server.dbQueries.CreateSession(ctx, database.CreateSessionParams{
+	_, err = server.db.queries.CreateSession(ctx, database.CreateSessionParams{
 		UserID:    user.ID,
 		TokenHash: tokenHash,
 		ExpiresAt: pgtype.Timestamp{
