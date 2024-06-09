@@ -37,7 +37,7 @@ func (server *Server) createUser(c *gin.Context) {
 	}
 
 	var req CreateUserRequest
-	server.JSONRequest(c, &req)
+	server.jsonReq(c, &req)
 
 	ctx := context.Background()
 	tx, qtx, err := server.DBTX(ctx)
@@ -157,7 +157,7 @@ func (server *Server) patchUser(c *gin.Context) {
 	}
 
 	var req PatchUserRequest
-	server.JSONRequest(c, &req)
+	server.jsonReq(c, &req)
 
 	ctx := context.Background()
 	tx, qtx, err := server.DBTX(ctx)

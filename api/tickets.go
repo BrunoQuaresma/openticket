@@ -28,7 +28,7 @@ func (server *Server) createTicket(c *gin.Context) {
 	user := server.AuthUser(c)
 
 	var req CreateTicketRequest
-	server.JSONRequest(c, &req)
+	server.jsonReq(c, &req)
 
 	ctx := context.Background()
 	tx, qtx, err := server.DBTX(ctx)

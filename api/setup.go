@@ -22,7 +22,7 @@ type SetupResponse = Response[struct {
 
 func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
-	server.JSONRequest(c, &req)
+	server.jsonReq(c, &req)
 
 	ctx := context.Background()
 	tx, qtx, err := server.DBTX(ctx)

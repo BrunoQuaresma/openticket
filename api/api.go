@@ -153,7 +153,7 @@ func (server *Server) DBQueries() *sqlc.Queries {
 	return server.dbQueries
 }
 
-func (server *Server) JSONRequest(c *gin.Context, req any) {
+func (server *Server) jsonReq(c *gin.Context, req any) {
 	c.BindJSON(req)
 	err := server.validate.Struct(req)
 
