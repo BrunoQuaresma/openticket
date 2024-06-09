@@ -10,7 +10,6 @@ import (
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -19,11 +18,6 @@ type Server struct {
 	validate   *validator.Validate
 	httpServer *http.Server
 	router     *gin.Engine
-}
-
-type ServerDB struct {
-	conn    *pgxpool.Pool
-	queries *database.Queries
 }
 
 const (
@@ -47,6 +41,15 @@ type Response[T any] struct {
 	Data    T                 `json:"data,omitempty"`
 	Errors  []ValidationError `json:"errors,omitempty"`
 	Message string            `json:"message,omitempty"`
+}
+
+type ServerError struct {
+	Res    Response[any]
+	Status int
+}
+
+func (e ServerError) Error() string {
+	return e.Res.Message
 }
 
 func NewServer(options ServerOptions) *Server {
@@ -147,14 +150,6 @@ func (server *Server) Close() {
 	server.db.conn.Close()
 }
 
-func (server *Server) DBTX(ctx context.Context) (pgx.Tx, *database.Queries, error) {
-	tx, err := server.db.conn.Begin(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	return tx, server.db.queries.WithTx(tx), nil
-}
-
 func (server *Server) jsonReq(c *gin.Context, req any) {
 	c.BindJSON(req)
 	err := server.validate.Struct(req)
@@ -172,6 +167,26 @@ func (server *Server) jsonReq(c *gin.Context, req any) {
 		})
 	}
 
-	c.JSON(http.StatusBadRequest, Response[any]{Errors: apiErrors})
-	c.Done()
+	c.AbortWithStatusJSON(http.StatusBadRequest, Response[any]{Errors: apiErrors})
+}
+
+type ServerDB struct {
+	conn    *pgxpool.Pool
+	queries *database.Queries
+}
+
+type txFn func(ctx context.Context, qtx *database.Queries) error
+
+func (db *ServerDB) tx(fn txFn) error {
+	ctx := context.Background()
+	tx, err := db.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	err = fn(ctx, db.queries.WithTx(tx))
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }

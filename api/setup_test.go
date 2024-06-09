@@ -108,7 +108,7 @@ func TestSetup_CantRunTwice(t *testing.T) {
 
 	httpRes, err := sdk.Setup(req, nil)
 	require.NoError(t, err, "error making the first request")
-	require.Equal(t, http.StatusNotFound, httpRes.StatusCode)
+	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
 }
 
 func TestSetup_Login(t *testing.T) {

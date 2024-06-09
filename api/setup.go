@@ -23,49 +23,54 @@ type Setup struct {
 
 type SetupResponse = Response[Setup]
 
+type SetupAlreadyDoneError struct{}
+
+func (e SetupAlreadyDoneError) Error() string {
+	return "setup is already done"
+}
+
 func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
 	server.jsonReq(c, &req)
 
-	ctx := context.Background()
-	tx, qtx, err := server.DBTX(ctx)
-	defer tx.Rollback(ctx)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
+	var user database.User
+	err := server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+		count, err := qtx.CountUsers(ctx)
+		if err != nil {
+			return err
+		}
+		if count > 0 {
+			return SetupAlreadyDoneError{}
+		}
 
-	count, err := qtx.CountUsers(ctx)
+		h, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
 
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
+		user, err = qtx.CreateUser(ctx, database.CreateUserParams{
+			Name:         req.Name,
+			Username:     req.Username,
+			Email:        req.Email,
+			PasswordHash: string(h),
+			Role:         "admin",
+		})
+		if err != nil {
+			return err
+		}
 
-	if count > 0 {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
-	}
-
-	h, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-
-	user, err := qtx.CreateUser(ctx, database.CreateUserParams{
-		Name:         req.Name,
-		Username:     req.Username,
-		Email:        req.Email,
-		PasswordHash: string(h),
-		Role:         "admin",
+		return nil
 	})
 
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		switch err.(type) {
+		case SetupAlreadyDoneError:
+			c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: err.Error()})
+		default:
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
 		return
 	}
-	tx.Commit(ctx)
 
 	c.JSON(http.StatusOK, SetupResponse{
 		Data: Setup{

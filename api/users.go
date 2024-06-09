@@ -30,8 +30,8 @@ type User struct {
 type CreateUserResponse = Response[User]
 
 func (server *Server) createUser(c *gin.Context) {
-	user := server.AuthUser(c)
-	if user.Role != "admin" {
+	authUser := server.AuthUser(c)
+	if authUser.Role != "admin" {
 		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can create users"})
 		return
 	}
@@ -39,66 +39,72 @@ func (server *Server) createUser(c *gin.Context) {
 	var req CreateUserRequest
 	server.jsonReq(c, &req)
 
-	ctx := context.Background()
-	tx, qtx, err := server.DBTX(ctx)
-	defer tx.Rollback(ctx)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
+	var user database.User
+	err := server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+		_, err := qtx.GetUserByEmail(ctx, req.Email)
+		if err == nil {
+			return EmailAlreadyInUseError{}
+		}
+		if err != pgx.ErrNoRows {
+			return err
+		}
 
-	_, err = qtx.GetUserByEmail(ctx, req.Email)
-	if err == nil {
-		var res Response[any]
-		res.Errors = append(res.Errors, ValidationError{Field: "email", Validator: "unique"})
-		res.Message = "email already in use"
-		c.AbortWithStatusJSON(http.StatusBadRequest, res)
-		return
-	}
-	if err != pgx.ErrNoRows {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
+		_, err = qtx.GetUserByUsername(ctx, req.Username)
+		if err == nil {
+			return UsernameAlreadyInUseError{}
+		}
+		if err != pgx.ErrNoRows {
+			return err
+		}
 
-	_, err = qtx.GetUserByUsername(ctx, req.Username)
-	if err == nil {
-		var res Response[any]
-		res.Errors = append(res.Errors, ValidationError{Field: "username", Validator: "unique"})
-		res.Message = "username already in use"
-		c.AbortWithStatusJSON(http.StatusBadRequest, res)
-		return
-	}
-	if err != pgx.ErrNoRows {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
+		h, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
 
-	h, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
+		user, err = qtx.CreateUser(ctx, database.CreateUserParams{
+			Name:         req.Name,
+			Username:     req.Username,
+			Email:        req.Email,
+			PasswordHash: string(h),
+			Role:         database.Role(req.Role),
+		})
+		if err != nil {
+			return err
+		}
 
-	u, err := qtx.CreateUser(ctx, database.CreateUserParams{
-		Name:         req.Name,
-		Username:     req.Username,
-		Email:        req.Email,
-		PasswordHash: string(h),
-		Role:         database.Role(req.Role),
+		return nil
 	})
+
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		switch err.(type) {
+		case EmailAlreadyInUseError:
+			c.AbortWithStatusJSON(http.StatusBadRequest, Response[any]{
+				Message: err.Error(),
+				Errors: []ValidationError{
+					{Field: "email", Validator: "unique"},
+				},
+			})
+		case UsernameAlreadyInUseError:
+			c.AbortWithStatusJSON(http.StatusBadRequest, Response[any]{
+				Message: err.Error(),
+				Errors: []ValidationError{
+					{Field: "username", Validator: "unique"},
+				},
+			})
+		default:
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
 		return
 	}
-	tx.Commit(ctx)
 
 	res := CreateUserResponse{
 		Data: User{
-			ID:       u.ID,
-			Name:     u.Name,
-			Username: u.Username,
-			Email:    u.Email,
-			Role:     string(u.Role),
+			ID:       user.ID,
+			Name:     user.Name,
+			Username: user.Username,
+			Email:    user.Email,
+			Role:     string(user.Role),
 		},
 	}
 
@@ -149,104 +155,139 @@ func (server *Server) patchUser(c *gin.Context) {
 		return
 	}
 
-	user := server.AuthUser(c)
-	if user.Role != "admin" && user.ID != int32(id) {
-		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can update other users"})
+	authUser := server.AuthUser(c)
+	if authUser.Role != "admin" && authUser.ID != int32(id) {
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{
+			Message: "only admins can update other users",
+		})
 		return
 	}
 
 	var req PatchUserRequest
 	server.jsonReq(c, &req)
 
-	ctx := context.Background()
-	tx, qtx, err := server.DBTX(ctx)
-	defer tx.Rollback(ctx)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-
-	u, err := qtx.GetUserByID(ctx, int32(id))
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "user not found"})
-		return
-	}
-
-	params := database.UpdateUserByIDParams{
-		ID:       u.ID,
-		Name:     u.Name,
-		Username: u.Username,
-		Email:    u.Email,
-		Role:     u.Role,
-	}
-
-	if req.Name != "" {
-		params.Name = req.Name
-	}
-
-	if req.Email != "" && params.Email != req.Email {
-		_, err = qtx.GetUserByEmail(ctx, req.Email)
-		if err == nil {
-			var res Response[any]
-			res.Errors = append(res.Errors, ValidationError{Field: "email", Validator: "unique"})
-			res.Message = "email already in use"
-			c.AbortWithStatusJSON(http.StatusBadRequest, res)
-			return
+	var updatedUser database.User
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+		u, err := qtx.GetUserByID(ctx, int32(id))
+		if err != nil {
+			return UserNotFoundError{}
 		}
-		params.Email = req.Email
-	}
 
-	if req.Username != "" && params.Username != req.Username {
-		_, err = qtx.GetUserByUsername(ctx, req.Username)
-		if err == nil {
-			var res Response[any]
-			res.Errors = append(res.Errors, ValidationError{Field: "username", Validator: "unique"})
-			res.Message = "username already in use"
-			c.AbortWithStatusJSON(http.StatusBadRequest, res)
-			return
+		params := database.UpdateUserByIDParams{
+			ID:       u.ID,
+			Name:     u.Name,
+			Username: u.Username,
+			Email:    u.Email,
+			Role:     u.Role,
 		}
-		params.Username = req.Username
-	}
 
-	if req.Role != "" && string(u.Role) != req.Role {
-		if user.Role != "admin" {
-			c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can update roles"})
-			return
+		if req.Name != "" {
+			params.Name = req.Name
 		}
-		if req.Role == "member" && u.Role == database.RoleAdmin {
-			countAdmins, err := qtx.CountAdmins(ctx)
-			if err != nil {
-				c.AbortWithError(http.StatusInternalServerError, err)
-				return
+
+		if req.Email != "" && params.Email != req.Email {
+			_, err = qtx.GetUserByEmail(ctx, req.Email)
+			if err == nil {
+				return EmailAlreadyInUseError{}
 			}
-			if countAdmins == 1 {
-				c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "can't remove the last admin"})
-				return
-			}
+			params.Email = req.Email
 		}
 
-		params.Role = database.Role(req.Role)
-	}
+		if req.Username != "" && params.Username != req.Username {
+			_, err = qtx.GetUserByUsername(ctx, req.Username)
+			if err == nil {
+				return UsernameAlreadyInUseError{}
+			}
+			params.Username = req.Username
+		}
 
-	u, err = qtx.UpdateUserByID(ctx, params)
+		if req.Role != "" && string(u.Role) != req.Role {
+			if authUser.Role != "admin" {
+				return PermissionDeniedError{Message: "only admins can update roles"}
+			}
+			if req.Role == "member" && u.Role == database.RoleAdmin {
+				countAdmins, err := qtx.CountAdmins(ctx)
+				if err != nil {
+					return err
+				}
+				if countAdmins == 1 {
+					return PermissionDeniedError{Message: "can't remove the last admin"}
+				}
+			}
+
+			params.Role = database.Role(req.Role)
+		}
+
+		updatedUser, err = qtx.UpdateUserByID(ctx, params)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		switch err.(type) {
+		case UserNotFoundError:
+			c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "user not found"})
+		case EmailAlreadyInUseError:
+			c.AbortWithStatusJSON(http.StatusBadRequest, Response[any]{
+				Message: err.Error(),
+				Errors: []ValidationError{
+					{Field: "email", Validator: "unique"},
+				},
+			})
+		case UsernameAlreadyInUseError:
+			c.AbortWithStatusJSON(http.StatusBadRequest, Response[any]{
+				Message: err.Error(),
+				Errors: []ValidationError{
+					{Field: "username", Validator: "unique"},
+				},
+			})
+		case PermissionDeniedError:
+			c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{
+				Message: err.Error(),
+			})
+		default:
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
 		return
 	}
 
 	res := PatchUserResponse{
 		Data: User{
-			ID:       u.ID,
-			Name:     u.Name,
-			Username: u.Username,
-			Email:    u.Email,
-			Role:     string(u.Role),
+			ID:       updatedUser.ID,
+			Name:     updatedUser.Name,
+			Username: updatedUser.Username,
+			Email:    updatedUser.Email,
+			Role:     string(updatedUser.Role),
 		},
 	}
 	c.JSON(http.StatusOK, res)
+}
+
+type EmailAlreadyInUseError struct{}
+
+func (e EmailAlreadyInUseError) Error() string {
+	return "email already in use"
+}
+
+type UsernameAlreadyInUseError struct{}
+
+func (e UsernameAlreadyInUseError) Error() string {
+	return "username already in use"
+}
+
+type UserNotFoundError struct{}
+
+func (e UserNotFoundError) Error() string {
+	return "user not found"
+}
+
+type PermissionDeniedError struct {
+	Message string
+}
+
+func (e PermissionDeniedError) Error() string {
+	return "permission denied: " + e.Message
 }

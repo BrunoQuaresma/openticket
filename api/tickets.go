@@ -30,46 +30,39 @@ func (server *Server) createTicket(c *gin.Context) {
 	var req CreateTicketRequest
 	server.jsonReq(c, &req)
 
-	ctx := context.Background()
-	tx, qtx, err := server.DBTX(ctx)
-	defer tx.Rollback(ctx)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
+	var ticket database.Ticket
+	err := server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+		ticket, err := qtx.CreateTicket(ctx, database.CreateTicketParams{
+			Title:       req.Title,
+			Description: req.Description,
+			CreatedBy:   user.ID,
+		})
+		if err != nil {
+			return err
+		}
 
-	ticket, err := qtx.CreateTicket(ctx, database.CreateTicketParams{
-		Title:       req.Title,
-		Description: req.Description,
-		CreatedBy:   user.ID,
-	})
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
-	}
-
-	if len(req.Labels) > 0 {
-		for _, labelName := range req.Labels {
-			label, err := qtx.CreateLabel(ctx, database.CreateLabelParams{
-				Name:      labelName,
-				CreatedBy: user.ID,
-			})
-			if err != nil {
-				c.AbortWithError(http.StatusInternalServerError, err)
-				return
-			}
-			err = qtx.AssignLabelToTicket(ctx, database.AssignLabelToTicketParams{
-				TicketID: ticket.ID,
-				LabelID:  label.ID,
-			})
-			if err != nil {
-				c.AbortWithError(http.StatusInternalServerError, err)
-				return
+		if len(req.Labels) > 0 {
+			for _, labelName := range req.Labels {
+				label, err := qtx.CreateLabel(ctx, database.CreateLabelParams{
+					Name:      labelName,
+					CreatedBy: user.ID,
+				})
+				if err != nil {
+					return err
+				}
+				err = qtx.AssignLabelToTicket(ctx, database.AssignLabelToTicketParams{
+					TicketID: ticket.ID,
+					LabelID:  label.ID,
+				})
+				if err != nil {
+					return err
+				}
 			}
 		}
-	}
 
-	err = tx.Commit(ctx)
+		return nil
+	})
+
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
