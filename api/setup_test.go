@@ -1,16 +1,13 @@
 package api_test
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/BrunoQuaresma/openticket/api/testutil"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func TestSetup_Validation(t *testing.T) {
@@ -70,7 +67,7 @@ func TestSetup_Validation(t *testing.T) {
 	})
 }
 
-func TestSetup(t *testing.T) {
+func TestSetup_Success(t *testing.T) {
 	t.Parallel()
 
 	tEnv := testutil.NewEnv(t)
@@ -89,20 +86,46 @@ func TestSetup(t *testing.T) {
 	httpRes, err := sdk.Setup(req, &res)
 	require.NoError(t, err, "error making the first request")
 	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+	require.NotEmpty(t, res.Data.ID)
+	require.Equal(t, "admin", res.Data.Role)
+}
 
-	ctx := context.Background()
-	firstUser, err := tEnv.DBQueries().GetUserByEmail(ctx, req.Email)
-	require.NoError(t, err, "error getting the first user")
-	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(firstUser.PasswordHash), []byte(req.Password)), "user password should be hashed")
-	require.Equal(t, database.RoleAdmin, firstUser.Role, "first user should be admin")
+func TestSetup_CantRunTwice(t *testing.T) {
+	t.Parallel()
 
-	req = api.SetupRequest{
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	tEnv.Setup()
+	sdk := tEnv.SDK()
+
+	req := api.SetupRequest{
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
 		Email:    gofakeit.Email(),
 		Password: testutil.FakePassword(),
 	}
-	httpRes, err = sdk.Setup(req, &res)
-	require.NoError(t, err, "error making the second request")
-	require.Equal(t, http.StatusNotFound, httpRes.StatusCode, "setup should return 404 if it was already done")
+
+	httpRes, err := sdk.Setup(req, nil)
+	require.NoError(t, err, "error making the first request")
+	require.Equal(t, http.StatusNotFound, httpRes.StatusCode)
+}
+
+func TestSetup_Login(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.SDK()
+
+	var res api.LoginResponse
+	httpRes, err := sdk.Login(api.LoginRequest{
+		Email:    setup.Req().Email,
+		Password: setup.Req().Password,
+	}, &res)
+
+	require.NoError(t, err, "error making login request")
+	require.Equal(t, 200, httpRes.StatusCode, "unexpected status code")
 }

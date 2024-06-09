@@ -16,9 +16,12 @@ type SetupRequest struct {
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-type SetupResponse = Response[struct {
-	ID int32 `json:"id"`
-}]
+type Setup struct {
+	ID   int32  `json:"id"`
+	Role string `json:"role"`
+}
+
+type SetupResponse = Response[Setup]
 
 func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
@@ -64,8 +67,10 @@ func (server *Server) setup(c *gin.Context) {
 	}
 	tx.Commit(ctx)
 
-	var res SetupResponse
-	res.Data.ID = user.ID
-
-	c.JSON(http.StatusOK, res)
+	c.JSON(http.StatusOK, SetupResponse{
+		Data: Setup{
+			ID:   user.ID,
+			Role: string(user.Role),
+		},
+	})
 }
