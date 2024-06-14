@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/BrunoQuaresma/openticket/api"
 )
@@ -11,7 +12,7 @@ func (c *Client) CreateTicket(req api.CreateTicketRequest, res *api.CreateTicket
 	return httpRes, err
 }
 
-func (c *Client) Tickets(res *api.TicketsResponse) (*http.Response, error) {
-	httpRes, err := c.Get("/tickets", res)
+func (c *Client) Tickets(res *api.TicketsResponse, urlValues *url.Values) (*http.Response, error) {
+	httpRes, err := c.Get("/tickets?"+urlValues.Encode(), res)
 	return httpRes, err
 }

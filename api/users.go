@@ -40,7 +40,7 @@ func (server *Server) createUser(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	var user database.User
-	err := server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+	err := server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
 		_, err := qtx.GetUserByEmail(ctx, req.Email)
 		if err == nil {
 			return EmailAlreadyInUseError{}
@@ -167,7 +167,7 @@ func (server *Server) patchUser(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	var updatedUser database.User
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
 		u, err := qtx.GetUserByID(ctx, int32(id))
 		if err != nil {
 			return UserNotFoundError{}

@@ -1,3 +1,6 @@
+-- name: GetLabelByName :one
+SELECT * FROM labels WHERE name = $1;
+
 -- name: CreateLabel :one
 INSERT INTO labels (name, created_by)
 VALUES ($1, $2)

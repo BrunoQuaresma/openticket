@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 type CreateTicketRequest struct {
@@ -34,7 +36,7 @@ func (server *Server) createTicket(c *gin.Context) {
 		ticket database.Ticket
 		err    error
 	)
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
 		ticket, err = qtx.CreateTicket(ctx, database.CreateTicketParams{
 			Title:       req.Title,
 			Description: req.Description,
@@ -46,13 +48,19 @@ func (server *Server) createTicket(c *gin.Context) {
 
 		if len(req.Labels) > 0 {
 			for _, labelName := range req.Labels {
-				label, err := qtx.CreateLabel(ctx, database.CreateLabelParams{
-					Name:      labelName,
-					CreatedBy: user.ID,
-				})
-				if err != nil {
+				label, err := qtx.GetLabelByName(ctx, labelName)
+				if err == pgx.ErrNoRows {
+					label, err = qtx.CreateLabel(ctx, database.CreateLabelParams{
+						Name:      labelName,
+						CreatedBy: user.ID,
+					})
+					if err != nil {
+						return err
+					}
+				} else if err != nil {
 					return err
 				}
+
 				err = qtx.AssignLabelToTicket(ctx, database.AssignLabelToTicketParams{
 					TicketID: ticket.ID,
 					LabelID:  label.ID,
@@ -90,16 +98,91 @@ func (server *Server) createTicket(c *gin.Context) {
 
 type TicketsResponse = Response[[]Ticket]
 
+type Tag struct {
+	Key    string
+	Values []string
+}
+
 func (server *Server) tickets(c *gin.Context) {
-	ctx := context.Background()
-	result, err := server.db.queries.GetTickets(ctx, []string{})
+	var tags []Tag
+	q, hasQuery := c.GetQuery("q")
+	if hasQuery {
+		sentences := strings.Split(q, " ")
+		for _, sentence := range sentences {
+			words := strings.Split(sentence, ":")
+			if len(words) != 2 {
+				c.AbortWithStatusJSON(http.StatusBadRequest, Response[any]{
+					Message: "Invalid query",
+					Errors: []ValidationError{
+						{Field: "q", Validator: "search"},
+					},
+				})
+				return
+			}
+			key := words[0]
+			values := strings.Split(words[1], ",")
+			tags = append(tags, Tag{
+				Key:    key,
+				Values: values,
+			})
+		}
+	}
+
+	var ticketRows []database.GetTicketsByIdsRow
+	err := server.db.tx(func(ctx context.Context, qtx *database.Queries, tx pgx.Tx) error {
+		selectQuery := "SELECT tickets.id FROM tickets " +
+			"JOIN ticket_labels ON tickets.id = ticket_labels.ticket_id " +
+			"JOIN labels ON ticket_labels.label_id = labels.id " +
+			"JOIN users ON tickets.created_by = users.id "
+		if len(tags) > 0 {
+			selectQuery += "WHERE "
+			for i, tag := range tags {
+				if i > 0 {
+					selectQuery += "AND "
+				}
+				if tag.Key == "label" {
+					selectQuery += "labels.name IN ("
+				} else {
+					selectQuery += "tickets." + tag.Key + " IN ("
+				}
+				for j, value := range tag.Values {
+					if j > 0 {
+						selectQuery += ", "
+					}
+					selectQuery += "'" + value + "'"
+				}
+				selectQuery += ") "
+			}
+		}
+		selectQuery += ";"
+
+		rows, err := tx.Query(ctx, selectQuery)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		results, err := pgx.CollectRows(rows, pgx.RowToStructByName[struct{ ID int32 }])
+		if err != nil {
+			return err
+		}
+		ids := make([]int32, len(results))
+		for i, result := range results {
+			ids[i] = result.ID
+		}
+		ticketRows, err = qtx.GetTicketsByIds(ctx, ids)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	tickets := make([]Ticket, len(result))
-	for i, ticket := range result {
+	tickets := make([]Ticket, len(ticketRows))
+	for i, ticket := range ticketRows {
 		tickets[i] = Ticket{
 			ID:          ticket.ID,
 			Title:       ticket.Title,

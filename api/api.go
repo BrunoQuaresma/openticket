@@ -10,6 +10,7 @@ import (
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -175,7 +176,7 @@ type ServerDB struct {
 	queries *database.Queries
 }
 
-type txFn func(ctx context.Context, qtx *database.Queries) error
+type txFn func(ctx context.Context, qtx *database.Queries, tx pgx.Tx) error
 
 func (db *ServerDB) tx(fn txFn) error {
 	ctx := context.Background()
@@ -184,9 +185,10 @@ func (db *ServerDB) tx(fn txFn) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	err = fn(ctx, db.queries.WithTx(tx))
+	err = fn(ctx, db.queries.WithTx(tx), tx)
 	if err != nil {
 		return err
 	}
+
 	return tx.Commit(ctx)
 }

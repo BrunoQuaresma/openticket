@@ -6,6 +6,7 @@ import (
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -34,7 +35,7 @@ func (server *Server) setup(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	var user database.User
-	err := server.db.tx(func(ctx context.Context, qtx *database.Queries) error {
+	err := server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
 		count, err := qtx.CountUsers(ctx)
 		if err != nil {
 			return err

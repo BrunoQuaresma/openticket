@@ -3,6 +3,7 @@ package api_test
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
@@ -75,14 +76,53 @@ func TestTickets_Success(t *testing.T) {
 			Description: gofakeit.HackerPhrase(),
 			Labels:      []string{gofakeit.HackerAbbreviation()},
 		}, &res)
-		require.NoError(t, err, "error creating ticket")
+		require.NoError(t, err, "error on create ticket request")
 		require.Equal(t, http.StatusCreated, httpRes.StatusCode, "error creating ticket "+fmt.Sprint(i))
 	}
 
 	var res api.TicketsResponse
-	httpRes, err := sdk.Tickets(&res)
+	httpRes, err := sdk.Tickets(&res, nil)
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusOK, httpRes.StatusCode)
-
 	require.Len(t, res.Data, numberOfTickets)
+}
+
+func TestTickets_Filter(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	var i int
+	createTicketWithLabel := func(label string) {
+		var res api.CreateTicketResponse
+		httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+			Title:       gofakeit.JobTitle(),
+			Description: gofakeit.HackerPhrase(),
+			Labels:      []string{label},
+		}, &res)
+		require.NoError(t, err, "error on create ticket request")
+		require.Equal(t, http.StatusCreated, httpRes.StatusCode, "error creating ticket with label "+label+" and index "+fmt.Sprint(i))
+		i++
+	}
+
+	createTicketWithLabel("bug")
+	createTicketWithLabel("bug")
+	createTicketWithLabel("bug")
+	createTicketWithLabel("feature")
+	createTicketWithLabel("feature")
+	createTicketWithLabel("feature")
+	createTicketWithLabel("request")
+
+	urlValues := url.Values{
+		"q": []string{"label:bug"},
+	}
+	var res api.TicketsResponse
+	httpRes, err := sdk.Tickets(&res, &urlValues)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode, "error getting tickets")
+	require.Len(t, res.Data, 3)
 }
