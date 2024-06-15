@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
@@ -87,7 +88,7 @@ func TestTickets_Success(t *testing.T) {
 	require.Len(t, res.Data, numberOfTickets)
 }
 
-func TestTickets_Filter(t *testing.T) {
+func TestTickets_FilterByLabel(t *testing.T) {
 	t.Parallel()
 
 	tEnv := testutil.NewEnv(t)
@@ -97,32 +98,56 @@ func TestTickets_Filter(t *testing.T) {
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
 	var i int
-	createTicketWithLabel := func(label string) {
+	createTicketWithLabel := func(labels []string) {
 		var res api.CreateTicketResponse
 		httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
 			Title:       gofakeit.JobTitle(),
 			Description: gofakeit.HackerPhrase(),
-			Labels:      []string{label},
+			Labels:      labels,
 		}, &res)
 		require.NoError(t, err, "error on create ticket request")
-		require.Equal(t, http.StatusCreated, httpRes.StatusCode, "error creating ticket with label "+label+" and index "+fmt.Sprint(i))
+		require.Equal(t, http.StatusCreated, httpRes.StatusCode, "error creating ticket with labels "+strings.Join(labels, ",")+" and index "+fmt.Sprint(i))
 		i++
 	}
 
-	createTicketWithLabel("bug")
-	createTicketWithLabel("bug")
-	createTicketWithLabel("bug")
-	createTicketWithLabel("feature")
-	createTicketWithLabel("feature")
-	createTicketWithLabel("feature")
-	createTicketWithLabel("request")
+	createTicketWithLabel([]string{"bug"})
+	createTicketWithLabel([]string{"bug"})
+	createTicketWithLabel([]string{"bug"})
+	createTicketWithLabel([]string{"feature", "site"})
+	createTicketWithLabel([]string{"feature", "site"})
+	createTicketWithLabel([]string{"feature", "api"})
+	createTicketWithLabel([]string{"request"})
 
-	urlValues := url.Values{
-		"q": []string{"label:bug"},
-	}
-	var res api.TicketsResponse
-	httpRes, err := sdk.Tickets(&res, &urlValues)
-	require.NoError(t, err, "error making request")
-	require.Equal(t, http.StatusOK, httpRes.StatusCode, "error getting tickets")
-	require.Len(t, res.Data, 3)
+	t.Run("one label", func(t *testing.T) {
+		urlValues := url.Values{
+			"q": []string{"label:bug"},
+		}
+		var res api.TicketsResponse
+		httpRes, err := sdk.Tickets(&res, &urlValues)
+		require.NoError(t, err, "error making request")
+		require.Equal(t, http.StatusOK, httpRes.StatusCode, "error getting tickets")
+		require.Len(t, res.Data, 3)
+	})
+
+	t.Run("multiple labels as OR", func(t *testing.T) {
+		urlValues := url.Values{
+			"q": []string{"label:bug,request"},
+		}
+		var res api.TicketsResponse
+		httpRes, err := sdk.Tickets(&res, &urlValues)
+		require.NoError(t, err, "error making request")
+		require.Equal(t, http.StatusOK, httpRes.StatusCode, "error getting tickets")
+		require.Len(t, res.Data, 4)
+	})
+
+	t.Run("multiple labels as AND", func(t *testing.T) {
+		urlValues := url.Values{
+			"q": []string{"label:feature label:site"},
+		}
+		var res api.TicketsResponse
+		httpRes, err := sdk.Tickets(&res, &urlValues)
+		require.NoError(t, err, "error making request")
+		require.Equal(t, http.StatusOK, httpRes.StatusCode, "error getting tickets")
+		require.Len(t, res.Data, 2)
+	})
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -130,31 +131,24 @@ func (server *Server) tickets(c *gin.Context) {
 
 	var ticketRows []database.GetTicketsByIdsRow
 	err := server.db.tx(func(ctx context.Context, qtx *database.Queries, tx pgx.Tx) error {
-		selectQuery := "SELECT tickets.id FROM tickets " +
+		baseSelect := "SELECT tickets.id FROM tickets " +
 			"JOIN ticket_labels ON tickets.id = ticket_labels.ticket_id " +
 			"JOIN labels ON ticket_labels.label_id = labels.id " +
 			"JOIN users ON tickets.created_by = users.id "
+		selects := []string{}
 		if len(tags) > 0 {
-			selectQuery += "WHERE "
-			for i, tag := range tags {
-				if i > 0 {
-					selectQuery += "AND "
-				}
+			for _, tag := range tags {
+				filterQuery := baseSelect + "WHERE "
 				if tag.Key == "label" {
-					selectQuery += "labels.name IN ("
+					filterQuery += "labels.name"
 				} else {
-					selectQuery += "tickets." + tag.Key + " IN ("
+					return errors.New("invalid tag key: " + tag.Key)
 				}
-				for j, value := range tag.Values {
-					if j > 0 {
-						selectQuery += ", "
-					}
-					selectQuery += "'" + value + "'"
-				}
-				selectQuery += ") "
+				filterQuery += " IN ('" + strings.Join(tag.Values, "', '") + "') "
+				selects = append(selects, filterQuery)
 			}
 		}
-		selectQuery += ";"
+		selectQuery := strings.Join(selects, "INTERSECT ") + ";"
 
 		rows, err := tx.Query(ctx, selectQuery)
 		if err != nil {
