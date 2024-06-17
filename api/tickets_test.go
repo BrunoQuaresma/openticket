@@ -161,4 +161,15 @@ func TestTickets_FilterByLabel(t *testing.T) {
 		require.Equal(t, http.StatusOK, httpRes.StatusCode, "error getting tickets")
 		require.Len(t, res.Data, 2)
 	})
+
+	t.Run("search by title and label", func(t *testing.T) {
+		urlValues := url.Values{
+			"q": []string{"validation label:site"},
+		}
+		var res api.TicketsResponse
+		httpRes, err := sdk.Tickets(&res, &urlValues)
+		require.NoError(t, err, "error making request")
+		require.Equal(t, http.StatusOK, httpRes.StatusCode, "error getting tickets")
+		require.Len(t, res.Data, 1)
+	})
 }
