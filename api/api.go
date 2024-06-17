@@ -95,13 +95,16 @@ func NewServer(options ServerOptions) *Server {
 
 	authenticated := server.router.Group("/")
 	authenticated.Use(server.AuthRequired)
+	{
+		authenticated.POST("/users", server.createUser)
+		authenticated.DELETE("/users/:id", server.deleteUser)
+		authenticated.PATCH("/users/:id", server.patchUser)
 
-	authenticated.POST("/users", server.createUser)
-	authenticated.DELETE("/users/:id", server.deleteUser)
-	authenticated.PATCH("/users/:id", server.patchUser)
+		authenticated.POST("/tickets", server.createTicket)
+		authenticated.GET("/tickets", server.tickets)
 
-	authenticated.POST("/tickets", server.createTicket)
-	authenticated.GET("/tickets", server.tickets)
+		authenticated.POST("/tickets/:ticketId/comments", server.createComment)
+	}
 
 	server.httpServer = &http.Server{
 		Addr:    ":" + fmt.Sprint(options.Port),
