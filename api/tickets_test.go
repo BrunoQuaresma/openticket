@@ -98,10 +98,10 @@ func TestTickets_FilterByLabel(t *testing.T) {
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
 	var i int
-	createTicketWithLabel := func(labels []string) {
+	createTicket := func(title string, labels []string) {
 		var res api.CreateTicketResponse
 		httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
-			Title:       gofakeit.JobTitle(),
+			Title:       title,
 			Description: gofakeit.HackerPhrase(),
 			Labels:      labels,
 		}, &res)
@@ -110,13 +110,13 @@ func TestTickets_FilterByLabel(t *testing.T) {
 		i++
 	}
 
-	createTicketWithLabel([]string{"bug"})
-	createTicketWithLabel([]string{"bug"})
-	createTicketWithLabel([]string{"bug"})
-	createTicketWithLabel([]string{"feature", "site"})
-	createTicketWithLabel([]string{"feature", "site"})
-	createTicketWithLabel([]string{"feature", "api"})
-	createTicketWithLabel([]string{"request"})
+	createTicket("login not working", []string{"bug"})
+	createTicket("register not working", []string{"bug"})
+	createTicket("wrong validation", []string{"bug"})
+	createTicket("add search", []string{"feature", "site"})
+	createTicket("add validation", []string{"feature", "site"})
+	createTicket("add health endpoint", []string{"feature", "api"})
+	createTicket("be able to config using terraform", []string{"request"})
 
 	t.Run("one label", func(t *testing.T) {
 		urlValues := url.Values{
@@ -143,6 +143,17 @@ func TestTickets_FilterByLabel(t *testing.T) {
 	t.Run("multiple labels as AND", func(t *testing.T) {
 		urlValues := url.Values{
 			"q": []string{"label:feature label:site"},
+		}
+		var res api.TicketsResponse
+		httpRes, err := sdk.Tickets(&res, &urlValues)
+		require.NoError(t, err, "error making request")
+		require.Equal(t, http.StatusOK, httpRes.StatusCode, "error getting tickets")
+		require.Len(t, res.Data, 2)
+	})
+
+	t.Run("search by title", func(t *testing.T) {
+		urlValues := url.Values{
+			"q": []string{"not working"},
 		}
 		var res api.TicketsResponse
 		httpRes, err := sdk.Tickets(&res, &urlValues)

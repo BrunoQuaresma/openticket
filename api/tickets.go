@@ -111,7 +111,9 @@ func (server *Server) tickets(c *gin.Context) {
 		sentences := strings.Split(q, " ")
 		for _, sentence := range sentences {
 			words := strings.Split(sentence, ":")
-			if len(words) != 2 {
+			if len(words) == 1 {
+				words = []string{"title", words[0]}
+			} else if len(words) != 2 {
 				c.AbortWithStatusJSON(http.StatusBadRequest, Response[any]{
 					Message: "Invalid query",
 					Errors: []ValidationError{
@@ -139,12 +141,14 @@ func (server *Server) tickets(c *gin.Context) {
 		if len(tags) > 0 {
 			for _, tag := range tags {
 				filterQuery := baseSelect + "WHERE "
-				if tag.Key == "label" {
-					filterQuery += "labels.name"
-				} else {
+				switch tag.Key {
+				case "title":
+					filterQuery += "tickets.title ILIKE '%" + strings.Join(tag.Values, "%' AND tickets.title ILIKE '%") + "%' "
+				case "label":
+					filterQuery += "labels.name IN ('" + strings.Join(tag.Values, "', '") + "') "
+				default:
 					return errors.New("invalid tag key: " + tag.Key)
 				}
-				filterQuery += " IN ('" + strings.Join(tag.Values, "', '") + "') "
 				selects = append(selects, filterQuery)
 			}
 		}
