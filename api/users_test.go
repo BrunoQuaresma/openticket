@@ -265,10 +265,10 @@ func TestAPI_PatchUser(t *testing.T) {
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
-	t.Run("can patch single fields", func(t *testing.T) {
+	t.Run("patching single fields", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("name", func(t *testing.T) {
+		t.Run("success: name", func(t *testing.T) {
 			t.Parallel()
 
 			createMemberReq := api.CreateUserRequest{
@@ -297,7 +297,7 @@ func TestAPI_PatchUser(t *testing.T) {
 			require.Equal(t, memberUserRes.Data.Role, updatedUserRes.Data.Role)
 		})
 
-		t.Run("username", func(t *testing.T) {
+		t.Run("success: username", func(t *testing.T) {
 			t.Parallel()
 
 			createMemberReq := api.CreateUserRequest{
@@ -326,7 +326,7 @@ func TestAPI_PatchUser(t *testing.T) {
 			require.Equal(t, memberUserRes.Data.Role, updatedUserRes.Data.Role)
 		})
 
-		t.Run("email", func(t *testing.T) {
+		t.Run("success: email", func(t *testing.T) {
 			t.Parallel()
 
 			createMemberReq := api.CreateUserRequest{
@@ -356,7 +356,7 @@ func TestAPI_PatchUser(t *testing.T) {
 		})
 	})
 
-	t.Run("success: admin can patch other users", func(t *testing.T) {
+	t.Run("success: admins patching other users", func(t *testing.T) {
 		t.Parallel()
 
 		createUserReq := api.CreateUserRequest{
@@ -388,7 +388,7 @@ func TestAPI_PatchUser(t *testing.T) {
 		require.Equal(t, patchUserReq.Role, updatedUserRes.Data.Role)
 	})
 
-	t.Run("members can only patch their own information", func(t *testing.T) {
+	t.Run("success: members patching their own information", func(t *testing.T) {
 		t.Parallel()
 
 		createMemberReq := api.CreateUserRequest{
@@ -449,7 +449,7 @@ func TestAPI_PatchUser(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
 	})
 
-	t.Run("success: admin can patch roles", func(t *testing.T) {
+	t.Run("success: admins patching roles", func(t *testing.T) {
 		t.Parallel()
 
 		createMemberReq := api.CreateUserRequest{
@@ -474,7 +474,7 @@ func TestAPI_PatchUser(t *testing.T) {
 		require.Equal(t, "admin", updatedUserRes.Data.Role)
 	})
 
-	t.Run("error: cannot demote single admin", func(t *testing.T) {
+	t.Run("error: demoting single admin", func(t *testing.T) {
 		t.Parallel()
 
 		httpRes, err := sdk.PatchUser(
