@@ -22,86 +22,35 @@ func (client *Client) Authenticate(sessionToken string) {
 }
 
 func (client *Client) Post(path string, req any, res any) (*http.Response, error) {
-	b, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var httpClient http.Client
-	httpReq, err := http.NewRequest("POST", client.url+path, bytes.NewBuffer(b))
-	if err != nil {
-		return nil, err
-	}
-	httpReq.Header.Set("Application-Type", "application/json")
-	if client.sessionToken != "" {
-		httpReq.Header.Set(api.SessionTokenHeader, client.sessionToken)
-	}
-	httpRes, err := httpClient.Do(httpReq)
-	if err != nil {
-		return httpRes, err
-	}
-	if httpRes.Body != http.NoBody {
-		defer httpRes.Body.Close()
-		err = json.NewDecoder(httpRes.Body).Decode(res)
-		if err != nil {
-			return httpRes, err
-		}
-	}
-	return httpRes, nil
+	return client.request("POST", path, req, res)
 }
 
 func (client *Client) Delete(path string) (*http.Response, error) {
-	var httpClient http.Client
-	httpReq, err := http.NewRequest("DELETE", client.url+path, nil)
-	if err != nil {
-		return nil, err
-	}
-	httpReq.Header.Set("Application-Type", "application/json")
-	if client.sessionToken != "" {
-		httpReq.Header.Set(api.SessionTokenHeader, client.sessionToken)
-	}
-	httpRes, err := httpClient.Do(httpReq)
-	if err != nil {
-		return httpRes, err
-	}
-	if httpRes.Body != http.NoBody {
-		defer httpRes.Body.Close()
-	}
-	return httpRes, nil
+	return client.request("DELETE", path, nil, nil)
 }
 
 func (client *Client) Patch(path string, req any, res any) (*http.Response, error) {
-	b, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var httpClient http.Client
-	httpReq, err := http.NewRequest("PATCH", client.url+path, bytes.NewBuffer(b))
-	if err != nil {
-		return nil, err
-	}
-	httpReq.Header.Set("Application-Type", "application/json")
-	if client.sessionToken != "" {
-		httpReq.Header.Set(api.SessionTokenHeader, client.sessionToken)
-	}
-	httpRes, err := httpClient.Do(httpReq)
-	if err != nil {
-		return httpRes, err
-	}
-	if httpRes.Body != http.NoBody {
-		defer httpRes.Body.Close()
-		err = json.NewDecoder(httpRes.Body).Decode(res)
-		if err != nil {
-			return httpRes, err
-		}
-	}
-	return httpRes, nil
+	return client.request("PATCH", path, req, res)
 }
 
 func (client *Client) Get(path string, res any) (*http.Response, error) {
+	return client.request("GET", path, nil, res)
+}
+
+func (client *Client) request(method string, path string, req any, res any) (*http.Response, error) {
+	var (
+		b   []byte
+		err error
+	)
+	if req != nil {
+		b, err = json.Marshal(req)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var httpClient http.Client
-	httpReq, err := http.NewRequest("GET", client.url+path, nil)
+	httpReq, err := http.NewRequest(method, client.url+path, bytes.NewBuffer(b))
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +62,7 @@ func (client *Client) Get(path string, res any) (*http.Response, error) {
 	if err != nil {
 		return httpRes, err
 	}
-	if httpRes.Body != http.NoBody {
+	if res != nil && httpRes.Body != http.NoBody {
 		defer httpRes.Body.Close()
 		err = json.NewDecoder(httpRes.Body).Decode(res)
 		if err != nil {
