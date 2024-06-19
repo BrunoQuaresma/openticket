@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthRequired(t *testing.T) {
+func TestAPI_AuthRequired(t *testing.T) {
 	t.Parallel()
 
 	tEnv := testutil.NewEnv(t)
@@ -26,23 +26,30 @@ func TestAuthRequired(t *testing.T) {
 	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 
-	t.Run("no token", func(t *testing.T) {
+	t.Run("unauthorized: no token", func(t *testing.T) {
+		t.Parallel()
+
 		res, err := http.Get(tEnv.Server().URL() + "/admin/test")
 		require.NoError(t, err, "error making admin test request")
 		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "expect unauthorized status code")
 	})
 
-	t.Run("invalid token", func(t *testing.T) {
+	t.Run("unauthorized: invalid token", func(t *testing.T) {
+		t.Parallel()
+
 		var client http.Client
 		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
 		require.NoError(t, err, "error creating request")
 		req.Header.Set(api.SessionTokenHeader, "invalid-token")
+
 		res, err := client.Do(req)
 		require.NoError(t, err, "error making admin test request")
 		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "expect unauthorized status code")
 	})
 
-	t.Run("valid token", func(t *testing.T) {
+	t.Run("authorized: valid token", func(t *testing.T) {
+		t.Parallel()
+
 		sdk := tEnv.SDK()
 		var loginRes api.LoginResponse
 		_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
@@ -61,7 +68,7 @@ func TestAuthRequired(t *testing.T) {
 	})
 }
 
-func TestLogin_ValidCredentials(t *testing.T) {
+func TestAPI_Login(t *testing.T) {
 	t.Parallel()
 
 	tEnv := testutil.NewEnv(t)
@@ -70,27 +77,23 @@ func TestLogin_ValidCredentials(t *testing.T) {
 	setup := tEnv.Setup()
 	sdk := tEnv.SDK()
 
-	var res api.LoginResponse
-	httpRes, err := sdk.Login(api.LoginRequest{
-		Email:    setup.Req().Email,
-		Password: setup.Req().Password,
-	}, &res)
+	t.Run("success: valid credentials", func(t *testing.T) {
+		t.Parallel()
 
-	require.NoError(t, err, "error making login request")
-	require.Equal(t, 200, httpRes.StatusCode, "unexpected status code")
-	require.NotEmpty(t, res.Data.SessionToken, "session token should not be empty")
-}
+		var res api.LoginResponse
+		httpRes, err := sdk.Login(api.LoginRequest{
+			Email:    setup.Req().Email,
+			Password: setup.Req().Password,
+		}, &res)
 
-func TestLogin_InvalidCredentials(t *testing.T) {
-	t.Parallel()
+		require.NoError(t, err, "error making login request")
+		require.Equal(t, 200, httpRes.StatusCode, "unexpected status code")
+		require.NotEmpty(t, res.Data.SessionToken, "session token should not be empty")
+	})
 
-	tEnv := testutil.NewEnv(t)
-	tEnv.Start()
-	t.Cleanup(tEnv.Close)
-	setup := tEnv.Setup()
-	sdk := tEnv.SDK()
+	t.Run("error: wrong email", func(t *testing.T) {
+		t.Parallel()
 
-	t.Run("wrong email", func(t *testing.T) {
 		httpRes, err := sdk.Login(api.LoginRequest{
 			Email:    "wrong" + setup.Req().Email,
 			Password: setup.Req().Password,
@@ -100,7 +103,9 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 		require.Equal(t, 401, httpRes.StatusCode, "unexpected status code")
 	})
 
-	t.Run("wrong password", func(t *testing.T) {
+	t.Run("error: wrong password", func(t *testing.T) {
+		t.Parallel()
+
 		httpRes, err := sdk.Login(api.LoginRequest{
 			Email:    setup.Req().Email,
 			Password: "wrong" + setup.Req().Password,
