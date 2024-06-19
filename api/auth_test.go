@@ -23,7 +23,6 @@ func TestAPI_AuthRequired(t *testing.T) {
 		})
 	})
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 
 	t.Run("unauthorized: no token", func(t *testing.T) {
@@ -73,7 +72,6 @@ func TestAPI_Login(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.SDK()
 

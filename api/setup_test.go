@@ -18,7 +18,6 @@ func TestAPI_Setup(t *testing.T) {
 
 		tEnv := testutil.NewEnv(t)
 		tEnv.Start()
-		t.Cleanup(tEnv.Close)
 
 		t.Run("error: no required fields", func(t *testing.T) {
 			t.Parallel()
@@ -81,7 +80,6 @@ func TestAPI_Setup(t *testing.T) {
 
 		tEnv := testutil.NewEnv(t)
 		tEnv.Start()
-		t.Cleanup(tEnv.Close)
 		sdk := tEnv.SDK()
 
 		req := api.SetupRequest{
@@ -104,7 +102,6 @@ func TestAPI_Setup(t *testing.T) {
 
 		tEnv := testutil.NewEnv(t)
 		tEnv.Start()
-		t.Cleanup(tEnv.Close)
 		tEnv.Setup()
 		sdk := tEnv.SDK()
 

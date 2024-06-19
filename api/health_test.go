@@ -15,7 +15,6 @@ func TestAPI_Health(t *testing.T) {
 		t.Parallel()
 
 		tEnv := testutil.NewEnv(t)
-		t.Cleanup(tEnv.Close)
 		tEnv.Start()
 		sdk := tEnv.SDK()
 

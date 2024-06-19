@@ -18,7 +18,6 @@ func TestCreateTicket_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -45,7 +44,6 @@ func TestCreateTicket_Validation(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -65,7 +63,6 @@ func TestTickets_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -93,7 +90,6 @@ func TestTickets_FilterByLabel(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -179,7 +175,6 @@ func TestDeleteTicket_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -202,7 +197,6 @@ func TestDeleteTicket_FailWhenUserIsNotAdminOrCreator(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -228,7 +222,6 @@ func TestPatchTicket_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -262,7 +255,6 @@ func TestTicket_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
