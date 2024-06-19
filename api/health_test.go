@@ -8,31 +8,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHealth_SetupDone(t *testing.T) {
+func TestAPI_Health(t *testing.T) {
 	t.Parallel()
 
-	tEnv := testutil.NewEnv(t)
-	tEnv.Start()
-	t.Cleanup(tEnv.Close)
-	tEnv.Setup()
-	sdk := tEnv.SDK()
+	t.Run("setup field reflects the setup state", func(t *testing.T) {
+		t.Parallel()
 
-	var res api.HealthResponse
-	_, err := sdk.Health(&res)
-	require.NoError(t, err, "error making health request")
-	require.True(t, res.Data.Setup, "health check failed")
-}
+		tEnv := testutil.NewEnv(t)
+		t.Cleanup(tEnv.Close)
+		tEnv.Start()
+		sdk := tEnv.SDK()
 
-func TestHealth_NoSetup(t *testing.T) {
-	t.Parallel()
+		var res api.HealthResponse
+		_, err := sdk.Health(&res)
+		require.NoError(t, err, "error making health request")
+		require.False(t, res.Data.Setup, "setup should be false")
 
-	tEnv := testutil.NewEnv(t)
-	tEnv.Start()
-	t.Cleanup(tEnv.Close)
-	sdk := tEnv.SDK()
+		tEnv.Setup()
 
-	var res api.HealthResponse
-	_, err := sdk.Health(&res)
-	require.NoError(t, err, "error making health request")
-	require.False(t, res.Data.Setup, "health check failed")
+		sdk = tEnv.SDK()
+		_, err = sdk.Health(&res)
+		require.NoError(t, err, "error making health request")
+		require.True(t, res.Data.Setup, "setup should be true")
+	})
 }
