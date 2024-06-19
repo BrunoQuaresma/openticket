@@ -16,8 +16,9 @@ type TestEnv struct {
 	t        *testing.T
 }
 
-func NewEnv(t *testing.T) *TestEnv {
+func NewEnv(t *testing.T) TestEnv {
 	tEnv := TestEnv{t: t}
+	t.Cleanup(tEnv.Close)
 
 	dbPort, err := getFreePort()
 	if err != nil {
@@ -41,7 +42,7 @@ func NewEnv(t *testing.T) *TestEnv {
 		Mode:        api.TestMode,
 		Port:        port,
 	})
-	return &tEnv
+	return tEnv
 }
 
 func (tEnv *TestEnv) Start() {
