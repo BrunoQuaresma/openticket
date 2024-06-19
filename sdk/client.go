@@ -13,8 +13,8 @@ type Client struct {
 	sessionToken string
 }
 
-func New(url string) *Client {
-	return &Client{url: url}
+func New(url string) Client {
+	return Client{url: url}
 }
 
 func (client *Client) Authenticate(sessionToken string) {

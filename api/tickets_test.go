@@ -215,7 +215,7 @@ func TestDeleteTicket_FailWhenUserIsNotAdminOrCreator(t *testing.T) {
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
 
-	member := testutil.NewMember(t, sdk)
+	member := testutil.NewMember(t, &sdk)
 	memberSdk := tEnv.AuthSDK(member.Email, member.Password)
 
 	httpRes, err = memberSdk.DeleteTicket(res.Data.ID)

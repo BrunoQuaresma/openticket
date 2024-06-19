@@ -88,11 +88,11 @@ func (tEnv *TestEnv) Setup() setup {
 	}
 }
 
-func (tEnv *TestEnv) SDK() *sdk.Client {
+func (tEnv *TestEnv) SDK() sdk.Client {
 	return sdk.New(tEnv.Server().URL())
 }
 
-func (tEnv *TestEnv) AuthSDK(email string, password string) *sdk.Client {
+func (tEnv *TestEnv) AuthSDK(email string, password string) sdk.Client {
 	sdk := tEnv.SDK()
 	var loginRes api.LoginResponse
 	_, err := sdk.Login(api.LoginRequest(api.LoginRequest{

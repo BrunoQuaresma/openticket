@@ -99,7 +99,7 @@ func TestDeleteComment_FailWhenUserIsNotAdminOrOwner(t *testing.T) {
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
 
-	member := testutil.NewMember(t, sdk)
+	member := testutil.NewMember(t, &sdk)
 	memberSdk := tEnv.AuthSDK(member.Email, member.Password)
 
 	httpRes, err = memberSdk.DeleteComment(ticketRes.Data.ID, commentRes.Data.ID)
@@ -172,7 +172,7 @@ func TestPatchComment_FailWhenUserIsNotAdminOrOwner(t *testing.T) {
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
 
-	member := testutil.NewMember(t, sdk)
+	member := testutil.NewMember(t, &sdk)
 	memberSdk := tEnv.AuthSDK(member.Email, member.Password)
 
 	newContent := gofakeit.Sentence(10)
