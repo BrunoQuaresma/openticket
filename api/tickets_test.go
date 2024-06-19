@@ -222,3 +222,37 @@ func TestDeleteTicket_FailWhenUserIsNotAdminOrCreator(t *testing.T) {
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
 }
+
+func TestPatchTicket_Success(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	var res api.CreateTicketResponse
+	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+		Title:       "User cannot login",
+		Description: "User cannot login to the system",
+		Labels:      []string{"bug", "customer", "login"},
+	}, &res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	req := api.PatchTicketRequest{
+		Title:       "User cannot login to the system",
+		Description: "User cannot login to the system. The error is 500",
+		Labels:      []string{"bug", "login", "500"},
+	}
+
+	var patchRes api.PatchTicketResponse
+	httpRes, err = sdk.PatchTicket(res.Data.ID, req, &patchRes)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+	require.Equal(t, req.Title, patchRes.Data.Title)
+	require.Equal(t, req.Description, patchRes.Data.Description)
+	require.Equal(t, req.Labels, patchRes.Data.Labels)
+}

@@ -24,3 +24,9 @@ GROUP BY tickets.id, users.id;
 -- name: DeleteTicketByID :exec
 DELETE FROM tickets
 WHERE id = @id;
+
+-- name: UpdateTicketByID :one
+UPDATE tickets
+SET title = $1, description = $2
+WHERE id = @id
+RETURNING *;

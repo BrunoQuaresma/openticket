@@ -52,7 +52,7 @@ func (server *Server) createTicket(c *gin.Context) {
 			for _, labelName := range req.Labels {
 				label, err := qtx.GetLabelByName(ctx, labelName)
 				if err == pgx.ErrNoRows {
-					label, err = qtx.CreateLabel(ctx, database.CreateLabelParams{
+					label, err = qtx.CreateLabelIfNotExists(ctx, database.CreateLabelIfNotExistsParams{
 						Name:      labelName,
 						CreatedBy: user.ID,
 					})
@@ -63,9 +63,9 @@ func (server *Server) createTicket(c *gin.Context) {
 					return err
 				}
 
-				err = qtx.AssignLabelToTicket(ctx, database.AssignLabelToTicketParams{
+				err = qtx.AssignLabelToTicketIfNotAssigned(ctx, database.AssignLabelToTicketIfNotAssignedParams{
 					TicketID: ticket.ID,
-					LabelID:  label.ID,
+					Name:     label.Name,
 				})
 				if err != nil {
 					return err
@@ -238,5 +238,110 @@ func (server *Server) deleteTicket(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: err.Error()})
 	default:
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to delete ticket"})
+	}
+}
+
+type PatchTicketRequest struct {
+	Title       string   `json:"title,omitempty" validate:"omitempty,min=3,max=70"`
+	Description string   `json:"description,omitempty" validate:"omitempty,min=10"`
+	Labels      []string `json:"labels,omitempty"`
+}
+
+type PatchTicketResponse = Response[Ticket]
+
+func (server *Server) patchTicket(c *gin.Context) {
+	user := server.AuthUser(c)
+
+	ticketId, err := strconv.ParseInt(c.Param("ticketId"), 10, 32)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "ticket not found"})
+		return
+	}
+
+	var req PatchTicketRequest
+	server.jsonReq(c, &req)
+
+	var (
+		updatedTicket database.Ticket
+		createdBy     database.User
+	)
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+		ticket, err := qtx.GetTicketByID(ctx, int32(ticketId))
+		if err != nil {
+			return TicketNotFoundError{}
+		}
+
+		if ticket.CreatedBy != user.ID && user.Role != "admin" {
+			return PermissionDeniedError{Message: "only admins and the ticket's creator can update tickets"}
+		}
+
+		if req.Title != "" {
+			ticket.Title = req.Title
+		}
+		if req.Description != "" {
+			ticket.Description = req.Description
+		}
+
+		if len(req.Labels) > 0 {
+			for _, labelName := range req.Labels {
+				label, err := qtx.GetLabelByName(ctx, labelName)
+				if err == pgx.ErrNoRows {
+					label, err = qtx.CreateLabelIfNotExists(ctx, database.CreateLabelIfNotExistsParams{
+						Name:      labelName,
+						CreatedBy: user.ID,
+					})
+					if err != nil {
+						return err
+					}
+				} else if err != nil {
+					return err
+				}
+
+				err = qtx.AssignLabelToTicketIfNotAssigned(ctx, database.AssignLabelToTicketIfNotAssignedParams{
+					TicketID: ticket.ID,
+					Name:     label.Name,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		updatedTicket, err = qtx.UpdateTicketByID(ctx, database.UpdateTicketByIDParams{
+			ID:          ticket.ID,
+			Title:       ticket.Title,
+			Description: ticket.Description,
+		})
+		if err != nil {
+			return err
+		}
+
+		createdBy, err = qtx.GetUserByID(ctx, ticket.CreatedBy)
+		return err
+	})
+
+	switch err.(type) {
+	case nil:
+		c.JSON(http.StatusOK, PatchTicketResponse{
+			Data: Ticket{
+				ID:          updatedTicket.ID,
+				Title:       updatedTicket.Title,
+				Description: updatedTicket.Description,
+				Labels:      req.Labels,
+				CreatedBy: User{
+					ID:       createdBy.ID,
+					Name:     createdBy.Name,
+					Username: createdBy.Username,
+					Email:    createdBy.Email,
+					Role:     string(createdBy.Role),
+				},
+			},
+		})
+	case TicketNotFoundError:
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "ticket not found"})
+	case PermissionDeniedError:
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: err.Error()})
+	default:
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to update ticket"})
 	}
 }

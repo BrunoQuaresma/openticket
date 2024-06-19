@@ -22,3 +22,8 @@ func (c *Client) DeleteTicket(ticketId int32) (*http.Response, error) {
 	httpRes, err := c.Delete("/tickets/" + fmt.Sprint(ticketId))
 	return httpRes, err
 }
+
+func (c *Client) PatchTicket(ticketId int32, req api.PatchTicketRequest, res *api.PatchTicketResponse) (*http.Response, error) {
+	httpRes, err := c.Patch("/tickets/"+fmt.Sprint(ticketId), req, res)
+	return httpRes, err
+}
