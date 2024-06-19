@@ -14,7 +14,11 @@ func (c *Client) CreateTicket(req api.CreateTicketRequest, res *api.CreateTicket
 }
 
 func (c *Client) Tickets(res *api.TicketsResponse, urlValues *url.Values) (*http.Response, error) {
-	httpRes, err := c.Get("/tickets?"+urlValues.Encode(), res)
+	var searchQuery string
+	if urlValues != nil {
+		searchQuery = "?" + urlValues.Encode()
+	}
+	httpRes, err := c.Get("/tickets"+searchQuery, res)
 	return httpRes, err
 }
 

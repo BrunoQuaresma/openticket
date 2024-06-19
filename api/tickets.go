@@ -138,8 +138,10 @@ func (server *Server) tickets(c *gin.Context) {
 			"JOIN ticket_labels ON tickets.id = ticket_labels.ticket_id " +
 			"JOIN labels ON ticket_labels.label_id = labels.id " +
 			"JOIN users ON tickets.created_by = users.id "
-		selects := []string{}
+		var selectQuery string
+
 		if len(tags) > 0 {
+			var selects []string
 			for _, tag := range tags {
 				filterQuery := baseSelect + "WHERE "
 				switch tag.Key {
@@ -151,9 +153,11 @@ func (server *Server) tickets(c *gin.Context) {
 					return errors.New("invalid tag key: " + tag.Key)
 				}
 				selects = append(selects, filterQuery)
+				selectQuery = strings.Join(selects, "INTERSECT ") + ";"
 			}
+		} else {
+			selectQuery = baseSelect + ";"
 		}
-		selectQuery := strings.Join(selects, "INTERSECT ") + ";"
 
 		rows, err := tx.Query(ctx, selectQuery)
 		if err != nil {
