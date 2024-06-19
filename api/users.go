@@ -283,11 +283,3 @@ type UserNotFoundError struct{}
 func (e UserNotFoundError) Error() string {
 	return "user not found"
 }
-
-type PermissionDeniedError struct {
-	Message string
-}
-
-func (e PermissionDeniedError) Error() string {
-	return "permission denied: " + e.Message
-}

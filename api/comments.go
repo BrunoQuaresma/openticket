@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -63,4 +65,44 @@ func (server *Server) createComment(c *gin.Context) {
 			},
 		},
 	})
+}
+
+type CommentNotFoundError struct{}
+
+func (e CommentNotFoundError) Error() string {
+	return "comment not found"
+}
+
+func (server *Server) deleteComment(c *gin.Context) {
+	user := server.AuthUser(c)
+
+	commentId, err := strconv.ParseInt(c.Param("commentId"), 10, 32)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "comment not found"})
+		return
+	}
+
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+		comment, err := qtx.GetCommentByID(ctx, int32(commentId))
+		if err != nil {
+			return CommentNotFoundError{}
+		}
+
+		if comment.UserID == user.ID || user.Role == "admin" {
+			return qtx.DeleteComment(ctx, int32(commentId))
+		}
+
+		return PermissionDeniedError{Message: "only admins and the comment's author can delete comments"}
+	})
+
+	switch err.(type) {
+	case nil:
+		c.Status(http.StatusNoContent)
+	case CommentNotFoundError:
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "comment not found"})
+	case PermissionDeniedError:
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: err.Error()})
+	default:
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to delete comment"})
+	}
 }

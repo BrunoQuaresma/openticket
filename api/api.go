@@ -104,6 +104,7 @@ func NewServer(options ServerOptions) *Server {
 		authenticated.GET("/tickets", server.tickets)
 
 		authenticated.POST("/tickets/:ticketId/comments", server.createComment)
+		authenticated.DELETE("/tickets/:ticketId/comments/:commentId", server.deleteComment)
 	}
 
 	server.httpServer = &http.Server{
@@ -194,4 +195,12 @@ func (db *ServerDB) tx(fn txFn) error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+type PermissionDeniedError struct {
+	Message string
+}
+
+func (e PermissionDeniedError) Error() string {
+	return "permission denied: " + e.Message
 }
