@@ -14,28 +14,17 @@ import (
 )
 
 type TestDatabase struct {
-	Username string
-	Password string
-	Database string
-	Port     uint32
-	Conn     *embeddedpostgres.EmbeddedPostgres
+	username    string
+	password    string
+	database    string
+	port        uint32
+	conn        *embeddedpostgres.EmbeddedPostgres
+	runtimePath string
+	logger      io.Writer
 }
 
-func (testDB *TestDatabase) Start(logger io.Writer) error {
-	tempPath, err := os.MkdirTemp("", "testdb")
-	if err != nil {
-		return errors.New("error creating temp directory: " + err.Error())
-	}
-	testDB.Conn = embeddedpostgres.NewDatabase(
-		embeddedpostgres.DefaultConfig().
-			Port(testDB.Port).
-			Username(testDB.Username).
-			Password(testDB.Password).
-			Database(testDB.Database).
-			Logger(logger).
-			RuntimePath(tempPath),
-	)
-	err = testDB.Conn.Start()
+func (testDB *TestDatabase) Start() error {
+	err := testDB.conn.Start()
 	if err != nil {
 		return err
 	}
@@ -55,8 +44,8 @@ func (testDB *TestDatabase) Start(logger io.Writer) error {
 
 	migrateCmd := exec.Command("./scripts/migrate.sh")
 	migrateCmd.Env = append(migrateCmd.Env, "POSTGRES_DB_URL="+testDB.URL())
-	migrateCmd.Stdout = logger
-	migrateCmd.Stderr = logger
+	migrateCmd.Stdout = testDB.logger
+	migrateCmd.Stderr = testDB.logger
 	err = migrateCmd.Run()
 	if err != nil {
 		testDB.Stop()
@@ -67,18 +56,37 @@ func (testDB *TestDatabase) Start(logger io.Writer) error {
 }
 
 func (testDB *TestDatabase) Stop() error {
-	return testDB.Conn.Stop()
+	return testDB.conn.Stop()
 }
 
 func (testDB *TestDatabase) URL() string {
-	return "postgresql://" + testDB.Username + ":" + testDB.Password + "@localhost:" + fmt.Sprint(testDB.Port) + "/" + testDB.Database + "?sslmode=disable"
+	return "postgresql://" + testDB.username + ":" + testDB.password + "@localhost:" + fmt.Sprint(testDB.port) + "/" + testDB.database + "?sslmode=disable"
 }
 
-func NewTestDatabase(port int) *TestDatabase {
-	return &TestDatabase{
-		Username: "postgres",
-		Password: "postgres",
-		Database: "postgres",
-		Port:     uint32(port),
+type NewTestDatabaseConfig struct {
+	port        int
+	runtimePath string
+	logger      io.Writer
+}
+
+func NewTestDatabase(config NewTestDatabaseConfig) (*TestDatabase, error) {
+	testDB := &TestDatabase{
+		username:    "postgres",
+		password:    "postgres",
+		database:    "postgres",
+		port:        uint32(config.port),
+		runtimePath: config.runtimePath,
 	}
+
+	testDB.conn = embeddedpostgres.NewDatabase(
+		embeddedpostgres.DefaultConfig().
+			Port(testDB.port).
+			Username(testDB.username).
+			Password(testDB.password).
+			Database(testDB.database).
+			Logger(testDB.logger).
+			RuntimePath(testDB.runtimePath),
+	)
+
+	return testDB, nil
 }

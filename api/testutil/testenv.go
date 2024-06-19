@@ -23,7 +23,14 @@ func NewEnv(t *testing.T) *TestEnv {
 	if err != nil {
 		t.Fatal("error getting free port for db: " + err.Error())
 	}
-	tEnv.database = NewTestDatabase(dbPort)
+	tEnv.database, err = NewTestDatabase(NewTestDatabaseConfig{
+		port:        dbPort,
+		logger:      io.Discard,
+		runtimePath: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatal("error creating test database: " + err.Error())
+	}
 
 	port, err := getFreePort()
 	if err != nil {
@@ -38,7 +45,7 @@ func NewEnv(t *testing.T) *TestEnv {
 }
 
 func (tEnv *TestEnv) Start() {
-	err := tEnv.database.Start(io.Discard)
+	err := tEnv.database.Start()
 	if err != nil {
 		tEnv.t.Fatal("error starting test database: " + err.Error())
 	}
