@@ -256,3 +256,33 @@ func TestPatchTicket_Success(t *testing.T) {
 	require.Equal(t, req.Description, patchRes.Data.Description)
 	require.Equal(t, req.Labels, patchRes.Data.Labels)
 }
+
+func TestTicket_Success(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	var res api.CreateTicketResponse
+	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+		Title:       "User cannot login",
+		Description: "User cannot login to the system",
+		Labels:      []string{"bug", "customer", "login"},
+	}, &res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	var ticketRes api.TicketResponse
+	httpRes, err = sdk.Ticket(res.Data.ID, &ticketRes)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+	require.Equal(t, res.Data.ID, ticketRes.Data.ID)
+	require.Equal(t, res.Data.Title, ticketRes.Data.Title)
+	require.Equal(t, res.Data.Description, ticketRes.Data.Description)
+	require.Equal(t, res.Data.Labels, ticketRes.Data.Labels)
+	require.Equal(t, setup.Res().Data.ID, ticketRes.Data.CreatedBy.ID)
+}

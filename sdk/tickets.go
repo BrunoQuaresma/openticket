@@ -27,3 +27,8 @@ func (c *Client) PatchTicket(ticketId int32, req api.PatchTicketRequest, res *ap
 	httpRes, err := c.Patch("/tickets/"+fmt.Sprint(ticketId), req, res)
 	return httpRes, err
 }
+
+func (c *Client) Ticket(ticketId int32, res *api.TicketResponse) (*http.Response, error) {
+	httpRes, err := c.Get("/tickets/"+fmt.Sprint(ticketId), res)
+	return httpRes, err
+}

@@ -345,3 +345,47 @@ func (server *Server) patchTicket(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to update ticket"})
 	}
 }
+
+type TicketResponse = Response[Ticket]
+
+func (server *Server) ticket(c *gin.Context) {
+	ticketId, err := strconv.ParseInt(c.Param("ticketId"), 10, 32)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "ticket not found"})
+		return
+	}
+
+	var ticketRow database.GetTicketByIDRow
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+		ticket, err := qtx.GetTicketByID(ctx, int32(ticketId))
+		if err != nil {
+			return TicketNotFoundError{}
+		}
+
+		ticketRow = ticket
+		return nil
+	})
+
+	switch err.(type) {
+	case nil:
+		c.JSON(http.StatusOK, PatchTicketResponse{
+			Data: Ticket{
+				ID:          ticketRow.ID,
+				Title:       ticketRow.Title,
+				Description: ticketRow.Description,
+				Labels:      ticketRow.Labels,
+				CreatedBy: User{
+					ID:       ticketRow.User.ID,
+					Name:     ticketRow.User.Name,
+					Username: ticketRow.User.Username,
+					Email:    ticketRow.User.Email,
+					Role:     string(ticketRow.User.Role),
+				},
+			},
+		})
+	case TicketNotFoundError:
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "ticket not found"})
+	default:
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to get ticket"})
+	}
+}
