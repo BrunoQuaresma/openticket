@@ -9,3 +9,9 @@ WHERE id = $1;
 
 -- name: GetCommentByID :one
 SELECT * FROM comments WHERE id = $1 LIMIT 1;
+
+-- name: UpdateCommentByID :one
+UPDATE comments
+SET content = $2, updated_at = NOW()
+WHERE id = $1
+RETURNING *;

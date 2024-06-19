@@ -105,6 +105,7 @@ func NewServer(options ServerOptions) *Server {
 
 		authenticated.POST("/tickets/:ticketId/comments", server.createComment)
 		authenticated.DELETE("/tickets/:ticketId/comments/:commentId", server.deleteComment)
+		authenticated.PATCH("/tickets/:ticketId/comments/:commentId", server.patchComment)
 	}
 
 	server.httpServer = &http.Server{

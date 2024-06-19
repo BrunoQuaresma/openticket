@@ -106,3 +106,72 @@ func (server *Server) deleteComment(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to delete comment"})
 	}
 }
+
+type PatchCommentRequest struct {
+	Content string `json:"content" validate:"required,min=10"`
+}
+
+type PatchCommentResponse = Response[Comment]
+
+func (server *Server) patchComment(c *gin.Context) {
+	user := server.AuthUser(c)
+
+	commentId, err := strconv.ParseInt(c.Param("commentId"), 10, 32)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "comment not found"})
+		return
+	}
+
+	var req PatchCommentRequest
+	server.jsonReq(c, &req)
+
+	var (
+		updatedComment database.Comment
+		commentOwner   database.User
+	)
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+		comment, err := qtx.GetCommentByID(ctx, int32(commentId))
+		if err != nil {
+			return CommentNotFoundError{}
+		}
+
+		if comment.UserID == user.ID || user.Role == "admin" {
+			updatedComment, err = qtx.UpdateCommentByID(ctx, database.UpdateCommentByIDParams{
+				ID:      comment.ID,
+				Content: req.Content,
+			})
+			if err != nil {
+				return err
+			}
+			commentOwner, err = qtx.GetUserByID(ctx, comment.UserID)
+			return err
+		}
+
+		return PermissionDeniedError{Message: "only the comment's author or admins can edit comments"}
+	})
+
+	switch err.(type) {
+	case nil:
+		c.JSON(http.StatusOK, PatchCommentResponse{
+			Data: Comment{
+				ID:        updatedComment.ID,
+				Content:   updatedComment.Content,
+				CreatedAt: updatedComment.CreatedAt.Time.UTC().String(),
+				ReplyTo:   updatedComment.ReplyTo.Int32,
+				CreatedBy: User{
+					ID:       commentOwner.ID,
+					Username: commentOwner.Username,
+					Name:     commentOwner.Name,
+					Email:    commentOwner.Email,
+					Role:     string(commentOwner.Role),
+				},
+			},
+		})
+	case CommentNotFoundError:
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "comment not found"})
+	case PermissionDeniedError:
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: err.Error()})
+	default:
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to update comment"})
+	}
+}
