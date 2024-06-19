@@ -15,7 +15,7 @@ func TestCreateComment_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -45,7 +45,7 @@ func TestDeleteComment_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -77,7 +77,7 @@ func TestDeleteComment_FailWhenUserIsNotAdminOrOwner(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -112,7 +112,7 @@ func TestPatchComment_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -150,7 +150,7 @@ func TestPatchComment_FailWhenUserIsNotAdminOrOwner(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 

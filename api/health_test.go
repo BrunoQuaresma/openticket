@@ -13,7 +13,7 @@ func TestHealth_SetupDone(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	tEnv.Setup()
 	sdk := tEnv.SDK()
 
@@ -28,7 +28,7 @@ func TestHealth_NoSetup(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	sdk := tEnv.SDK()
 
 	var res api.HealthResponse

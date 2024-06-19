@@ -23,7 +23,7 @@ func TestAuthRequired(t *testing.T) {
 		})
 	})
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 
 	t.Run("no token", func(t *testing.T) {
@@ -66,7 +66,7 @@ func TestLogin_ValidCredentials(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.SDK()
 
@@ -86,7 +86,7 @@ func TestLogin_InvalidCredentials(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.SDK()
 

@@ -15,7 +15,7 @@ func TestSetup_Validation(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 
 	t.Run("required fields", func(t *testing.T) {
 		var (
@@ -72,7 +72,7 @@ func TestSetup_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	sdk := tEnv.SDK()
 
 	req := api.SetupRequest{
@@ -95,7 +95,7 @@ func TestSetup_CantRunTwice(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	tEnv.Setup()
 	sdk := tEnv.SDK()
 
@@ -116,7 +116,7 @@ func TestSetup_Login(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.SDK()
 

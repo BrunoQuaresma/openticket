@@ -15,7 +15,7 @@ func TestCreateUser_Authentication(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	tEnv.Setup()
 	sdk := tEnv.SDK()
 
@@ -29,7 +29,7 @@ func TestCreateUser_Validation(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -144,7 +144,7 @@ func TestCreateUser_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -173,7 +173,7 @@ func TestCreateUser_OnlyAdminsCanCreate(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -206,7 +206,7 @@ func TestDeleteUser_Success(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -232,7 +232,7 @@ func TestDeleteUser_OnlyAdminsCanDelete(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -259,7 +259,7 @@ func TestDeleteUser_CantSelfDelete(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -273,7 +273,7 @@ func TestPatchUser_CanPatchSingleField(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -364,7 +364,7 @@ func TestPatchUser_AdminCanPatchOtherUsers(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -402,7 +402,7 @@ func TestPatchUser_MemberOnlyCanSelfPatch(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -444,7 +444,7 @@ func TestPatchUser_MemberCantChangeRoles(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -475,7 +475,7 @@ func TestPatchUser_AdminCanChangeRoles(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
@@ -506,7 +506,7 @@ func TestPatchUser_CantDemoteLastAdminToMember(t *testing.T) {
 
 	tEnv := testutil.NewEnv(t)
 	tEnv.Start()
-	defer tEnv.Close()
+	t.Cleanup(tEnv.Close)
 	setup := tEnv.Setup()
 	adminSDK := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 	httpRes, err := adminSDK.PatchUser(
