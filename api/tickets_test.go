@@ -173,3 +173,52 @@ func TestTickets_FilterByLabel(t *testing.T) {
 		require.Len(t, res.Data, 1)
 	})
 }
+
+func TestDeleteTicket_Success(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	var res api.CreateTicketResponse
+	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+		Title:       "User cannot login",
+		Description: "User cannot login to the system",
+		Labels:      []string{"bug", "customer", "login"},
+	}, &res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	httpRes, err = sdk.DeleteTicket(res.Data.ID)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusNoContent, httpRes.StatusCode)
+}
+
+func TestDeleteTicket_FailWhenUserIsNotAdminOrCreator(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	defer tEnv.Close()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	var res api.CreateTicketResponse
+	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+		Title:       "User cannot login",
+		Description: "User cannot login to the system",
+		Labels:      []string{"bug", "customer", "login"},
+	}, &res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	member := testutil.NewMember(t, sdk)
+	memberSdk := tEnv.AuthSDK(member.Email, member.Password)
+
+	httpRes, err = memberSdk.DeleteTicket(res.Data.ID)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusForbidden, httpRes.StatusCode)
+}

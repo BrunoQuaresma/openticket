@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -14,5 +15,10 @@ func (c *Client) CreateTicket(req api.CreateTicketRequest, res *api.CreateTicket
 
 func (c *Client) Tickets(res *api.TicketsResponse, urlValues *url.Values) (*http.Response, error) {
 	httpRes, err := c.Get("/tickets?"+urlValues.Encode(), res)
+	return httpRes, err
+}
+
+func (c *Client) DeleteTicket(ticketId int32) (*http.Response, error) {
+	httpRes, err := c.Delete("/tickets/" + fmt.Sprint(ticketId))
 	return httpRes, err
 }

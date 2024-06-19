@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	database "github.com/BrunoQuaresma/openticket/api/database/gen"
@@ -131,7 +132,7 @@ func (server *Server) tickets(c *gin.Context) {
 		}
 	}
 
-	var ticketRows []database.GetTicketsByIdsRow
+	var ticketRows []database.GetTicketsByIDsRow
 	err := server.db.tx(func(ctx context.Context, qtx *database.Queries, tx pgx.Tx) error {
 		baseSelect := "SELECT tickets.id FROM tickets " +
 			"JOIN ticket_labels ON tickets.id = ticket_labels.ticket_id " +
@@ -167,7 +168,7 @@ func (server *Server) tickets(c *gin.Context) {
 		for i, result := range results {
 			ids[i] = result.ID
 		}
-		ticketRows, err = qtx.GetTicketsByIds(ctx, ids)
+		ticketRows, err = qtx.GetTicketsByIDs(ctx, ids)
 		if err != nil {
 			return err
 		}
@@ -198,4 +199,44 @@ func (server *Server) tickets(c *gin.Context) {
 	c.JSON(http.StatusOK, TicketsResponse{
 		Data: tickets,
 	})
+}
+
+type TicketNotFoundError struct{}
+
+func (e TicketNotFoundError) Error() string {
+	return "ticket not found"
+}
+
+func (server *Server) deleteTicket(c *gin.Context) {
+	user := server.AuthUser(c)
+
+	ticketId, err := strconv.ParseInt(c.Param("ticketId"), 10, 32)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "ticket not found"})
+		return
+	}
+
+	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+		ticket, err := qtx.GetTicketByID(ctx, int32(ticketId))
+		if err != nil {
+			return TicketNotFoundError{}
+		}
+
+		if ticket.CreatedBy == user.ID || user.Role == "admin" {
+			return qtx.DeleteTicketByID(ctx, int32(ticketId))
+		}
+
+		return PermissionDeniedError{Message: "only admins and the ticket's creator can delete tickets"}
+	})
+
+	switch err.(type) {
+	case nil:
+		c.Status(http.StatusNoContent)
+	case TicketNotFoundError:
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "ticket not found"})
+	case PermissionDeniedError:
+		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: err.Error()})
+	default:
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to delete ticket"})
+	}
 }
