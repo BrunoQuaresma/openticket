@@ -6,10 +6,13 @@ CREATE TABLE IF NOT EXISTS labels (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TYPE ticket_status AS ENUM ('open', 'closed');
+
 CREATE TABLE IF NOT EXISTS tickets (
   id SERIAL PRIMARY KEY,
   title VARCHAR(70) NOT NULL,
   description TEXT NOT NULL,
+  status ticket_status DEFAULT 'open',
   created_by INTEGER REFERENCES users (id) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

@@ -1,3 +1,4 @@
 DROP TABLE IF EXISTS ticket_labels;
 DROP TABLE IF EXISTS tickets;
 DROP TABLE IF EXISTS labels;
+DROP TYPE IF EXISTS ticket_status;
