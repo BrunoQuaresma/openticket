@@ -105,6 +105,7 @@ func NewServer(options ServerOptions) *Server {
 		authenticated.GET("/tickets/:ticketId", server.ticket)
 		authenticated.DELETE("/tickets/:ticketId", server.deleteTicket)
 		authenticated.PATCH("/tickets/:ticketId", server.patchTicket)
+		authenticated.PATCH("/tickets/:ticketId/status", server.patchTicketStatus)
 
 		authenticated.POST("/tickets/:ticketId/comments", server.createComment)
 		authenticated.DELETE("/tickets/:ticketId/comments/:commentId", server.deleteComment)

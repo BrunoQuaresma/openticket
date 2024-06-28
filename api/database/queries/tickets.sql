@@ -30,3 +30,9 @@ UPDATE tickets
 SET title = $1, description = $2
 WHERE id = @id
 RETURNING *;
+
+-- name: UpdateTicketStatusByID :one
+UPDATE tickets
+SET status = $1
+WHERE id = @id
+RETURNING *;

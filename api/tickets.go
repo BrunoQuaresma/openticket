@@ -22,6 +22,7 @@ type Ticket struct {
 	ID          int32    `json:"id"`
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
+	Status      string   `json:"status"`
 	Labels      []string `json:"labels"`
 	CreatedBy   User     `json:"created_by"`
 }
@@ -86,6 +87,7 @@ func (server *Server) createTicket(c *gin.Context) {
 			ID:          ticket.ID,
 			Title:       ticket.Title,
 			Description: ticket.Description,
+			Status:      string(ticket.Status),
 			Labels:      req.Labels,
 			CreatedBy: User{
 				ID:       user.ID,
@@ -190,6 +192,7 @@ func (server *Server) tickets(c *gin.Context) {
 			ID:          ticket.ID,
 			Title:       ticket.Title,
 			Description: ticket.Description,
+			Status:      string(ticket.Status),
 			Labels:      ticket.Labels,
 			CreatedBy: User{
 				ID:       ticket.User.ID,
@@ -331,6 +334,7 @@ func (server *Server) patchTicket(c *gin.Context) {
 				ID:          updatedTicket.ID,
 				Title:       updatedTicket.Title,
 				Description: updatedTicket.Description,
+				Status:      string(updatedTicket.Status),
 				Labels:      req.Labels,
 				CreatedBy: User{
 					ID:       createdBy.ID,
@@ -377,6 +381,7 @@ func (server *Server) ticket(c *gin.Context) {
 				ID:          ticketRow.ID,
 				Title:       ticketRow.Title,
 				Description: ticketRow.Description,
+				Status:      string(ticketRow.Status),
 				Labels:      ticketRow.Labels,
 				CreatedBy: User{
 					ID:       ticketRow.User.ID,
@@ -392,4 +397,55 @@ func (server *Server) ticket(c *gin.Context) {
 	default:
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to get ticket"})
 	}
+}
+
+type PatchTicketStatusRequest struct {
+	Status string `json:"status" validate:"required,oneof=open closed"`
+}
+
+type PatchTicketStatusResponse = Response[Ticket]
+
+func (server *Server) patchTicketStatus(c *gin.Context) {
+	ticketId, err := strconv.ParseInt(c.Param("ticketId"), 10, 32)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "ticket not found"})
+		return
+	}
+
+	var req PatchTicketStatusRequest
+	server.jsonReq(c, &req)
+
+	_, err = server.db.queries.UpdateTicketStatusByID(
+		c.Request.Context(),
+		database.UpdateTicketStatusByIDParams{
+			ID:     int32(ticketId),
+			Status: database.TicketStatus(req.Status),
+		},
+	)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to update ticket status"})
+		return
+	}
+	updatedTicket, err := server.db.queries.GetTicketByID(c.Request.Context(), int32(ticketId))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to get updated ticket"})
+		return
+	}
+
+	c.JSON(http.StatusOK, PatchTicketStatusResponse{
+		Data: Ticket{
+			ID:          updatedTicket.ID,
+			Title:       updatedTicket.Title,
+			Description: updatedTicket.Description,
+			Labels:      updatedTicket.Labels,
+			Status:      string(updatedTicket.Status),
+			CreatedBy: User{
+				ID:       updatedTicket.User.ID,
+				Name:     updatedTicket.User.Name,
+				Username: updatedTicket.User.Username,
+				Email:    updatedTicket.User.Email,
+				Role:     string(updatedTicket.User.Role),
+			},
+		},
+	})
 }
