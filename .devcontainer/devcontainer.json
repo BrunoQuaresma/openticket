@@ -12,7 +12,14 @@
 		"vscode": {
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "zsh"
-			}
+			},
+			"extensions": [
+				"ms-azuretools.vscode-docker",
+				"ms-vscode-remote.remote-containers",
+				"golang.go",
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode"
+			]
 		}
 	}
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
