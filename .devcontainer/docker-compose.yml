@@ -2,7 +2,7 @@ version: '3.8'
 
 volumes:
   postgres-data:
-
+  bashhistory:
 
 services:
   app:
@@ -16,6 +16,7 @@ services:
     volumes:
       - ../..:/workspaces:cached
       - ~/.ssh:/home/vscode/.ssh:cached
+      - bashhistory:/commandhistory
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
