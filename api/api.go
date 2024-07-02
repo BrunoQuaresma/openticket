@@ -13,7 +13,7 @@ import (
 )
 
 type Server struct {
-	db         *database.Database
+	db         *database.Connection
 	validate   *validator.Validate
 	httpServer *http.Server
 	router     *gin.Engine
@@ -24,12 +24,6 @@ const (
 	DevMode        = "dev"
 	ProductionMode = "production"
 )
-
-type ServerOptions struct {
-	Database *database.Database
-	Port     int
-	Mode     string
-}
 
 type ValidationError struct {
 	Field     string `json:"field"`
@@ -51,8 +45,8 @@ func (e ServerError) Error() string {
 	return e.Res.Message
 }
 
-func NewServer(options ServerOptions) *Server {
-	server := Server{db: options.Database}
+func NewServer(port int, database *database.Connection, mode string) *Server {
+	server := Server{db: database}
 
 	server.validate = validator.New(validator.WithRequiredStructEnabled())
 	server.validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -65,7 +59,7 @@ func NewServer(options ServerOptions) *Server {
 		return name
 	})
 
-	switch options.Mode {
+	switch mode {
 	case TestMode:
 		gin.SetMode(gin.TestMode)
 		server.router = gin.New()
@@ -104,7 +98,7 @@ func NewServer(options ServerOptions) *Server {
 	}
 
 	server.httpServer = &http.Server{
-		Addr:    ":" + fmt.Sprint(options.Port),
+		Addr:    ":" + fmt.Sprint(port),
 		Handler: server.router,
 	}
 

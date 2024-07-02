@@ -12,9 +12,9 @@ import (
 )
 
 type TestEnv struct {
-	database *TestDatabase
-	server   *api.Server
-	t        *testing.T
+	localDatabase *database.LocalDatabase
+	server        *api.Server
+	t             *testing.T
 }
 
 func NewEnv(t *testing.T) TestEnv {
@@ -25,33 +25,26 @@ func NewEnv(t *testing.T) TestEnv {
 	if err != nil {
 		t.Fatal("error getting free port for db: " + err.Error())
 	}
-	tEnv.database, err = NewTestDatabase(NewTestDatabaseConfig{
-		port:        dbPort,
-		logger:      io.Discard,
-		runtimePath: t.TempDir(),
-	})
+	tEnv.localDatabase, err = database.NewLocalDatabase(uint32(dbPort), t.TempDir(), io.Discard)
 	if err != nil {
 		t.Fatal("error creating test database: " + err.Error())
 	}
-
-	port, err := getFreePort()
-	if err != nil {
-		t.Fatal("error getting free port for server: " + err.Error())
-	}
-	db, err := database.New(tEnv.database.URL())
+	db, err := database.Connect(tEnv.localDatabase.URL())
 	if err != nil {
 		t.Fatal("error connecting to database: " + err.Error())
 	}
-	tEnv.server = api.NewServer(api.ServerOptions{
-		Database: &db,
-		Mode:     api.TestMode,
-		Port:     port,
-	})
+
+	serverPort, err := getFreePort()
+	if err != nil {
+		t.Fatal("error getting free port for server: " + err.Error())
+	}
+	tEnv.server = api.NewServer(serverPort, &db, api.TestMode)
+
 	return tEnv
 }
 
 func (tEnv *TestEnv) Start() {
-	err := tEnv.database.Start()
+	err := tEnv.localDatabase.Start()
 	if err != nil {
 		tEnv.t.Fatal("error starting test database: " + err.Error())
 	}
@@ -60,7 +53,7 @@ func (tEnv *TestEnv) Start() {
 }
 
 func (tEnv *TestEnv) Close() {
-	tEnv.database.Stop()
+	tEnv.localDatabase.Stop()
 	tEnv.server.Close()
 }
 

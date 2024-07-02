@@ -8,36 +8,36 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Database struct {
+type Connection struct {
 	queries *sqlc.Queries
-	conn    *pgxpool.Pool
+	pgConn  *pgxpool.Pool
 }
 
-func New(connStr string) (Database, error) {
+func Connect(connStr string) (Connection, error) {
 	dbCtx := context.Background()
-	dbConn, err := pgxpool.New(dbCtx, connStr)
+	pgConn, err := pgxpool.New(dbCtx, connStr)
 	if err != nil {
-		return Database{}, err
+		return Connection{}, err
 	}
-	return Database{
-		conn:    dbConn,
-		queries: sqlc.New(dbConn),
+	return Connection{
+		pgConn:  pgConn,
+		queries: sqlc.New(pgConn),
 	}, nil
 }
 
-func (db *Database) Close() {
-	db.conn.Close()
+func (db *Connection) Close() {
+	db.pgConn.Close()
 }
 
-func (db *Database) Queries() *sqlc.Queries {
+func (db *Connection) Queries() *sqlc.Queries {
 	return db.queries
 }
 
 type txFn func(ctx context.Context, qtx *sqlc.Queries, tx pgx.Tx) error
 
-func (db *Database) TX(fn txFn) error {
+func (db *Connection) TX(fn txFn) error {
 	ctx := context.Background()
-	tx, err := db.conn.Begin(ctx)
+	tx, err := db.pgConn.Begin(ctx)
 	if err != nil {
 		return err
 	}

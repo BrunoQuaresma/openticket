@@ -1,4 +1,4 @@
-package testutil
+package database
 
 import (
 	"errors"
@@ -13,17 +13,16 @@ import (
 	embeddedpostgres "github.com/fergusstrange/embedded-postgres"
 )
 
-type TestDatabase struct {
-	username    string
-	password    string
-	database    string
-	port        uint32
-	conn        *embeddedpostgres.EmbeddedPostgres
-	runtimePath string
-	logger      io.Writer
+type LocalDatabase struct {
+	username string
+	password string
+	database string
+	port     uint32
+	conn     *embeddedpostgres.EmbeddedPostgres
+	logger   io.Writer
 }
 
-func (testDB *TestDatabase) Start() error {
+func (testDB *LocalDatabase) Start() error {
 	err := testDB.conn.Start()
 	if err != nil {
 		return err
@@ -55,27 +54,21 @@ func (testDB *TestDatabase) Start() error {
 	return nil
 }
 
-func (testDB *TestDatabase) Stop() error {
+func (testDB *LocalDatabase) Stop() error {
 	return testDB.conn.Stop()
 }
 
-func (testDB *TestDatabase) URL() string {
+func (testDB *LocalDatabase) URL() string {
 	return "postgresql://" + testDB.username + ":" + testDB.password + "@localhost:" + fmt.Sprint(testDB.port) + "/" + testDB.database + "?sslmode=disable"
 }
 
-type NewTestDatabaseConfig struct {
-	port        int
-	runtimePath string
-	logger      io.Writer
-}
-
-func NewTestDatabase(config NewTestDatabaseConfig) (*TestDatabase, error) {
-	testDB := &TestDatabase{
-		username:    "postgres",
-		password:    "postgres",
-		database:    "postgres",
-		port:        uint32(config.port),
-		runtimePath: config.runtimePath,
+func NewLocalDatabase(port uint32, runtimePath string, logger io.Writer) (*LocalDatabase, error) {
+	testDB := &LocalDatabase{
+		username: "postgres",
+		password: "postgres",
+		database: "postgres",
+		port:     port,
+		logger:   logger,
 	}
 
 	testDB.conn = embeddedpostgres.NewDatabase(
@@ -85,7 +78,7 @@ func NewTestDatabase(config NewTestDatabaseConfig) (*TestDatabase, error) {
 			Password(testDB.password).
 			Database(testDB.database).
 			Logger(testDB.logger).
-			RuntimePath(testDB.runtimePath),
+			RuntimePath(runtimePath),
 	)
 
 	return testDB, nil
