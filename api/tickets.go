@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
+	sqlc "github.com/BrunoQuaresma/openticket/api/database/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 )
@@ -36,11 +36,11 @@ func (server *Server) createTicket(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	var (
-		ticket database.Ticket
+		ticket sqlc.Ticket
 		err    error
 	)
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
-		ticket, err = qtx.CreateTicket(ctx, database.CreateTicketParams{
+	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
+		ticket, err = qtx.CreateTicket(ctx, sqlc.CreateTicketParams{
 			Title:       req.Title,
 			Description: req.Description,
 			CreatedBy:   user.ID,
@@ -53,7 +53,7 @@ func (server *Server) createTicket(c *gin.Context) {
 			for _, labelName := range req.Labels {
 				label, err := qtx.GetLabelByName(ctx, labelName)
 				if err == pgx.ErrNoRows {
-					label, err = qtx.CreateLabelIfNotExists(ctx, database.CreateLabelIfNotExistsParams{
+					label, err = qtx.CreateLabelIfNotExists(ctx, sqlc.CreateLabelIfNotExistsParams{
 						Name:      labelName,
 						CreatedBy: user.ID,
 					})
@@ -64,7 +64,7 @@ func (server *Server) createTicket(c *gin.Context) {
 					return err
 				}
 
-				err = qtx.AssignLabelToTicketIfNotAssigned(ctx, database.AssignLabelToTicketIfNotAssignedParams{
+				err = qtx.AssignLabelToTicketIfNotAssigned(ctx, sqlc.AssignLabelToTicketIfNotAssignedParams{
 					TicketID: ticket.ID,
 					Name:     label.Name,
 				})
@@ -134,8 +134,8 @@ func (server *Server) tickets(c *gin.Context) {
 		}
 	}
 
-	var ticketRows []database.GetTicketsByIDsRow
-	err := server.db.tx(func(ctx context.Context, qtx *database.Queries, tx pgx.Tx) error {
+	var ticketRows []sqlc.GetTicketsByIDsRow
+	err := server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, tx pgx.Tx) error {
 		baseSelect := "SELECT tickets.id FROM tickets " +
 			"JOIN ticket_labels ON tickets.id = ticket_labels.ticket_id " +
 			"JOIN labels ON ticket_labels.label_id = labels.id " +
@@ -223,7 +223,7 @@ func (server *Server) deleteTicket(c *gin.Context) {
 		return
 	}
 
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		ticket, err := qtx.GetTicketByID(ctx, int32(ticketId))
 		if err != nil {
 			return TicketNotFoundError{}
@@ -269,10 +269,10 @@ func (server *Server) patchTicket(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	var (
-		updatedTicket database.Ticket
-		createdBy     database.User
+		updatedTicket sqlc.Ticket
+		createdBy     sqlc.User
 	)
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		ticket, err := qtx.GetTicketByID(ctx, int32(ticketId))
 		if err != nil {
 			return TicketNotFoundError{}
@@ -293,7 +293,7 @@ func (server *Server) patchTicket(c *gin.Context) {
 			for _, labelName := range req.Labels {
 				label, err := qtx.GetLabelByName(ctx, labelName)
 				if err == pgx.ErrNoRows {
-					label, err = qtx.CreateLabelIfNotExists(ctx, database.CreateLabelIfNotExistsParams{
+					label, err = qtx.CreateLabelIfNotExists(ctx, sqlc.CreateLabelIfNotExistsParams{
 						Name:      labelName,
 						CreatedBy: user.ID,
 					})
@@ -304,7 +304,7 @@ func (server *Server) patchTicket(c *gin.Context) {
 					return err
 				}
 
-				err = qtx.AssignLabelToTicketIfNotAssigned(ctx, database.AssignLabelToTicketIfNotAssignedParams{
+				err = qtx.AssignLabelToTicketIfNotAssigned(ctx, sqlc.AssignLabelToTicketIfNotAssignedParams{
 					TicketID: ticket.ID,
 					Name:     label.Name,
 				})
@@ -314,7 +314,7 @@ func (server *Server) patchTicket(c *gin.Context) {
 			}
 		}
 
-		updatedTicket, err = qtx.UpdateTicketByID(ctx, database.UpdateTicketByIDParams{
+		updatedTicket, err = qtx.UpdateTicketByID(ctx, sqlc.UpdateTicketByIDParams{
 			ID:          ticket.ID,
 			Title:       ticket.Title,
 			Description: ticket.Description,
@@ -363,8 +363,8 @@ func (server *Server) ticket(c *gin.Context) {
 		return
 	}
 
-	var ticketRow database.GetTicketByIDRow
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+	var ticketRow sqlc.GetTicketByIDRow
+	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		ticket, err := qtx.GetTicketByID(ctx, int32(ticketId))
 		if err != nil {
 			return TicketNotFoundError{}
@@ -415,18 +415,18 @@ func (server *Server) patchTicketStatus(c *gin.Context) {
 	var req PatchTicketStatusRequest
 	server.jsonReq(c, &req)
 
-	_, err = server.db.queries.UpdateTicketStatusByID(
+	_, err = server.db.Queries().UpdateTicketStatusByID(
 		c.Request.Context(),
-		database.UpdateTicketStatusByIDParams{
+		sqlc.UpdateTicketStatusByIDParams{
 			ID:     int32(ticketId),
-			Status: database.TicketStatus(req.Status),
+			Status: sqlc.TicketStatus(req.Status),
 		},
 	)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to update ticket status"})
 		return
 	}
-	updatedTicket, err := server.db.queries.GetTicketByID(c.Request.Context(), int32(ticketId))
+	updatedTicket, err := server.db.Queries().GetTicketByID(c.Request.Context(), int32(ticketId))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to get updated ticket"})
 		return

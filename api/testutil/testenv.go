@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
+	"github.com/BrunoQuaresma/openticket/api/database"
 	"github.com/BrunoQuaresma/openticket/sdk"
 	"github.com/brianvoe/gofakeit"
 )
@@ -37,10 +38,14 @@ func NewEnv(t *testing.T) TestEnv {
 	if err != nil {
 		t.Fatal("error getting free port for server: " + err.Error())
 	}
+	db, err := database.New(tEnv.database.URL())
+	if err != nil {
+		t.Fatal("error connecting to database: " + err.Error())
+	}
 	tEnv.server = api.NewServer(api.ServerOptions{
-		DatabaseURL: tEnv.database.URL(),
-		Mode:        api.TestMode,
-		Port:        port,
+		Database: &db,
+		Mode:     api.TestMode,
+		Port:     port,
 	})
 	return tEnv
 }

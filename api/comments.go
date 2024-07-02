@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
+	sqlc "github.com/BrunoQuaresma/openticket/api/database/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -39,7 +39,7 @@ func (server *Server) createComment(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	ctx := c.Request.Context()
-	newComment, err := server.db.queries.CreateComment(ctx, database.CreateCommentParams{
+	newComment, err := server.db.Queries().CreateComment(ctx, sqlc.CreateCommentParams{
 		Content:  req.Content,
 		TicketID: int32(ticketId),
 		UserID:   user.ID,
@@ -82,7 +82,7 @@ func (server *Server) deleteComment(c *gin.Context) {
 		return
 	}
 
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		comment, err := qtx.GetCommentByID(ctx, int32(commentId))
 		if err != nil {
 			return CommentNotFoundError{}
@@ -126,17 +126,17 @@ func (server *Server) patchComment(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	var (
-		updatedComment database.Comment
-		commentOwner   database.User
+		updatedComment sqlc.Comment
+		commentOwner   sqlc.User
 	)
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		comment, err := qtx.GetCommentByID(ctx, int32(commentId))
 		if err != nil {
 			return CommentNotFoundError{}
 		}
 
 		if comment.UserID == user.ID || user.Role == "admin" {
-			updatedComment, err = qtx.UpdateCommentByID(ctx, database.UpdateCommentByIDParams{
+			updatedComment, err = qtx.UpdateCommentByID(ctx, sqlc.UpdateCommentByIDParams{
 				ID:      comment.ID,
 				Content: req.Content,
 			})

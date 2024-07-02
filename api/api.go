@@ -1,21 +1,19 @@
 package api
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/BrunoQuaresma/openticket/api/database"
 )
 
 type Server struct {
-	db         *ServerDB
+	db         *database.Database
 	validate   *validator.Validate
 	httpServer *http.Server
 	router     *gin.Engine
@@ -28,9 +26,9 @@ const (
 )
 
 type ServerOptions struct {
-	DatabaseURL string
-	Port        int
-	Mode        string
+	Database *database.Database
+	Port     int
+	Mode     string
 }
 
 type ValidationError struct {
@@ -54,17 +52,7 @@ func (e ServerError) Error() string {
 }
 
 func NewServer(options ServerOptions) *Server {
-	var server Server
-
-	dbCtx := context.Background()
-	dbConn, err := pgxpool.New(dbCtx, options.DatabaseURL)
-	if err != nil {
-		panic("error connecting to the database. " + err.Error())
-	}
-	server.db = &ServerDB{
-		conn:    dbConn,
-		queries: database.New(dbConn),
-	}
+	server := Server{db: options.Database}
 
 	server.validate = validator.New(validator.WithRequiredStructEnabled())
 	server.validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -160,7 +148,7 @@ func (server *Server) URL() string {
 
 func (server *Server) Close() {
 	server.httpServer.Close()
-	server.db.conn.Close()
+	server.db.Close()
 }
 
 func (server *Server) jsonReq(c *gin.Context, req any) {
@@ -181,28 +169,6 @@ func (server *Server) jsonReq(c *gin.Context, req any) {
 	}
 
 	c.AbortWithStatusJSON(http.StatusBadRequest, Response[any]{Errors: apiErrors})
-}
-
-type ServerDB struct {
-	conn    *pgxpool.Pool
-	queries *database.Queries
-}
-
-type txFn func(ctx context.Context, qtx *database.Queries, tx pgx.Tx) error
-
-func (db *ServerDB) tx(fn txFn) error {
-	ctx := context.Background()
-	tx, err := db.conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-	err = fn(ctx, db.queries.WithTx(tx), tx)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
 }
 
 type PermissionDeniedError struct {

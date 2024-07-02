@@ -8,13 +8,13 @@ import (
 
 type Health struct {
 	Setup    bool `json:"setup"`
-	Database bool `json:"database"`
+	Database bool `json:"sqlc"`
 }
 
 type HealthResponse = Response[Health]
 
 func (server *Server) health(c *gin.Context) {
-	hasFirstUser, err := server.db.queries.HasFirstUser(c)
+	hasFirstUser, err := server.db.Queries().HasFirstUser(c)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

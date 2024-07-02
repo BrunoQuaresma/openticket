@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
+	sqlc "github.com/BrunoQuaresma/openticket/api/database/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -34,8 +34,8 @@ func (server *Server) setup(c *gin.Context) {
 	var req SetupRequest
 	server.jsonReq(c, &req)
 
-	var user database.User
-	err := server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+	var user sqlc.User
+	err := server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		count, err := qtx.CountUsers(ctx)
 		if err != nil {
 			return err
@@ -49,7 +49,7 @@ func (server *Server) setup(c *gin.Context) {
 			return err
 		}
 
-		user, err = qtx.CreateUser(ctx, database.CreateUserParams{
+		user, err = qtx.CreateUser(ctx, sqlc.CreateUserParams{
 			Name:         req.Name,
 			Username:     req.Username,
 			Email:        req.Email,

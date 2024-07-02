@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
+	sqlc "github.com/BrunoQuaresma/openticket/api/database/sqlc"
 	"github.com/gin-gonic/gin"
 )
 
@@ -32,7 +32,7 @@ func (server *Server) createAssignment(c *gin.Context) {
 		return
 	}
 
-	assignment, err := server.db.queries.CreateAssignment(c.Request.Context(), database.CreateAssignmentParams{
+	assignment, err := server.db.Queries().CreateAssignment(c.Request.Context(), sqlc.CreateAssignmentParams{
 		TicketID:   int32(ticketId),
 		UserID:     req.UserID,
 		AssignedBy: user.ID,
@@ -59,7 +59,7 @@ func (server *Server) deleteAssignment(c *gin.Context) {
 		return
 	}
 
-	err = server.db.queries.DeleteAssignment(c.Request.Context(), int32(assignmentId))
+	err = server.db.Queries().DeleteAssignment(c.Request.Context(), int32(assignmentId))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to delete assignment"})
 		return

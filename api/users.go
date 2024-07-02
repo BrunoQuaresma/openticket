@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
+	sqlc "github.com/BrunoQuaresma/openticket/api/database/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -39,8 +39,8 @@ func (server *Server) createUser(c *gin.Context) {
 	var req CreateUserRequest
 	server.jsonReq(c, &req)
 
-	var user database.User
-	err := server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+	var user sqlc.User
+	err := server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		_, err := qtx.GetUserByEmail(ctx, req.Email)
 		if err == nil {
 			return EmailAlreadyInUseError{}
@@ -62,12 +62,12 @@ func (server *Server) createUser(c *gin.Context) {
 			return err
 		}
 
-		user, err = qtx.CreateUser(ctx, database.CreateUserParams{
+		user, err = qtx.CreateUser(ctx, sqlc.CreateUserParams{
 			Name:         req.Name,
 			Username:     req.Username,
 			Email:        req.Email,
 			PasswordHash: string(h),
-			Role:         database.Role(req.Role),
+			Role:         sqlc.Role(req.Role),
 		})
 		if err != nil {
 			return err
@@ -130,7 +130,7 @@ func (server *Server) deleteUser(c *gin.Context) {
 	}
 
 	ctx := context.Background()
-	err = server.db.queries.DeleteUserByID(ctx, int32(id))
+	err = server.db.Queries().DeleteUserByID(ctx, int32(id))
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -166,14 +166,14 @@ func (server *Server) patchUser(c *gin.Context) {
 	var req PatchUserRequest
 	server.jsonReq(c, &req)
 
-	var updatedUser database.User
-	err = server.db.tx(func(ctx context.Context, qtx *database.Queries, _ pgx.Tx) error {
+	var updatedUser sqlc.User
+	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		u, err := qtx.GetUserByID(ctx, int32(id))
 		if err != nil {
 			return UserNotFoundError{}
 		}
 
-		params := database.UpdateUserByIDParams{
+		params := sqlc.UpdateUserByIDParams{
 			ID:       u.ID,
 			Name:     u.Name,
 			Username: u.Username,
@@ -205,7 +205,7 @@ func (server *Server) patchUser(c *gin.Context) {
 			if authUser.Role != "admin" {
 				return PermissionDeniedError{Message: "only admins can update roles"}
 			}
-			if req.Role == "member" && u.Role == database.RoleAdmin {
+			if req.Role == "member" && u.Role == sqlc.RoleAdmin {
 				countAdmins, err := qtx.CountAdmins(ctx)
 				if err != nil {
 					return err
@@ -215,7 +215,7 @@ func (server *Server) patchUser(c *gin.Context) {
 				}
 			}
 
-			params.Role = database.Role(req.Role)
+			params.Role = sqlc.Role(req.Role)
 		}
 
 		updatedUser, err = qtx.UpdateUserByID(ctx, params)

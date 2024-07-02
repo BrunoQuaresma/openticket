@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	database "github.com/BrunoQuaresma/openticket/api/database/gen"
+	sqlc "github.com/BrunoQuaresma/openticket/api/database/sqlc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -25,7 +25,7 @@ func (server *Server) AuthRequired(c *gin.Context) {
 	ctx := context.Background()
 	sum := sha256.Sum256([]byte(sessionToken))
 	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
-	session, err := server.db.queries.GetSessionByTokenHash(ctx, tokenHash)
+	session, err := server.db.Queries().GetSessionByTokenHash(ctx, tokenHash)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -40,7 +40,7 @@ func (server *Server) AuthRequired(c *gin.Context) {
 		return
 	}
 
-	user, err := server.db.queries.GetUserByID(ctx, session.UserID)
+	user, err := server.db.Queries().GetUserByID(ctx, session.UserID)
 	if err != nil {
 		c.AbortWithError(500, err)
 		return
@@ -50,13 +50,13 @@ func (server *Server) AuthRequired(c *gin.Context) {
 	c.Next()
 }
 
-func (server *Server) AuthUser(c *gin.Context) database.User {
+func (server *Server) AuthUser(c *gin.Context) sqlc.User {
 	user, err := c.Get(userCtxKey)
 	if !err {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("user not found in context"))
-		return database.User{}
+		return sqlc.User{}
 	}
-	return user.(database.User)
+	return user.(sqlc.User)
 }
 
 type LoginRequest struct {
@@ -73,7 +73,7 @@ func (server *Server) login(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	ctx := context.Background()
-	user, err := server.db.queries.GetUserByEmail(ctx, req.Email)
+	user, err := server.db.Queries().GetUserByEmail(ctx, req.Email)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -98,7 +98,7 @@ func (server *Server) login(c *gin.Context) {
 	}
 	sum := sha256.Sum256([]byte(token))
 	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
-	_, err = server.db.queries.CreateSession(ctx, database.CreateSessionParams{
+	_, err = server.db.Queries().CreateSession(ctx, sqlc.CreateSessionParams{
 		UserID:    user.ID,
 		TokenHash: tokenHash,
 		ExpiresAt: pgtype.Timestamp{
