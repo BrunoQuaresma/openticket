@@ -18,12 +18,12 @@ type LocalDatabase struct {
 	password string
 	database string
 	port     uint32
-	conn     *embeddedpostgres.EmbeddedPostgres
+	pg       *embeddedpostgres.EmbeddedPostgres
 	logger   io.Writer
 }
 
 func (testDB *LocalDatabase) Start() error {
-	err := testDB.conn.Start()
+	err := testDB.pg.Start()
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (testDB *LocalDatabase) Start() error {
 }
 
 func (testDB *LocalDatabase) Stop() error {
-	return testDB.conn.Stop()
+	return testDB.pg.Stop()
 }
 
 func (testDB *LocalDatabase) URL() string {
@@ -71,7 +71,7 @@ func NewLocalDatabase(port uint32, runtimePath string, logger io.Writer) (*Local
 		logger:   logger,
 	}
 
-	testDB.conn = embeddedpostgres.NewDatabase(
+	testDB.pg = embeddedpostgres.NewDatabase(
 		embeddedpostgres.DefaultConfig().
 			Port(testDB.port).
 			Username(testDB.username).
