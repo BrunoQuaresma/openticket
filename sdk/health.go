@@ -7,5 +7,5 @@ import (
 )
 
 func (c *Client) Health(res *api.HealthResponse) (*http.Response, error) {
-	return c.Get("/health", res)
+	return c.get("/health", res)
 }

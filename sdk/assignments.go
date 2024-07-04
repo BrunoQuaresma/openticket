@@ -8,7 +8,7 @@ import (
 )
 
 func (c *Client) CreateAssignment(ticketId int32, userId int32, res *api.CreateAssignmentResponse) (*http.Response, error) {
-	httpRes, err := c.Post(
+	httpRes, err := c.post(
 		"/tickets/"+fmt.Sprint(ticketId)+"/assignments",
 		api.CreateAssignmentRequest{UserID: userId},
 		res,
@@ -17,5 +17,5 @@ func (c *Client) CreateAssignment(ticketId int32, userId int32, res *api.CreateA
 }
 
 func (c *Client) DeleteAssignment(assignmentId int32) (*http.Response, error) {
-	return c.Delete("/tickets/1/assignments/" + fmt.Sprint(assignmentId))
+	return c.delete("/tickets/1/assignments/" + fmt.Sprint(assignmentId))
 }

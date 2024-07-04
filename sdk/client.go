@@ -21,19 +21,19 @@ func (client *Client) Authenticate(sessionToken string) {
 	client.sessionToken = sessionToken
 }
 
-func (client *Client) Post(path string, req any, res any) (*http.Response, error) {
+func (client *Client) post(path string, req any, res any) (*http.Response, error) {
 	return client.request("POST", path, req, res)
 }
 
-func (client *Client) Delete(path string) (*http.Response, error) {
+func (client *Client) delete(path string) (*http.Response, error) {
 	return client.request("DELETE", path, nil, nil)
 }
 
-func (client *Client) Patch(path string, req any, res any) (*http.Response, error) {
+func (client *Client) patch(path string, req any, res any) (*http.Response, error) {
 	return client.request("PATCH", path, req, res)
 }
 
-func (client *Client) Get(path string, res any) (*http.Response, error) {
+func (client *Client) get(path string, res any) (*http.Response, error) {
 	return client.request("GET", path, nil, res)
 }
 
