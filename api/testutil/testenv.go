@@ -25,10 +25,7 @@ func NewEnv(t *testing.T) TestEnv {
 	if err != nil {
 		t.Fatal("error getting free port for db: " + err.Error())
 	}
-	tEnv.localDatabase, err = database.NewLocalDatabase(uint32(dbPort), t.TempDir(), io.Discard)
-	if err != nil {
-		t.Fatal("error creating test database: " + err.Error())
-	}
+	tEnv.localDatabase = database.NewLocalDatabase(uint32(dbPort), t.TempDir(), io.Discard)
 	db, err := database.Connect(tEnv.localDatabase.URL())
 	if err != nil {
 		t.Fatal("error connecting to database: " + err.Error())
@@ -48,8 +45,14 @@ func (tEnv *TestEnv) Start() {
 	if err != nil {
 		tEnv.t.Fatal("error starting test database: " + err.Error())
 	}
+	err = tEnv.localDatabase.Migrate()
+	if err != nil {
+		tEnv.t.Fatal("error migrating test database: " + err.Error())
+	}
 
-	tEnv.server.Start()
+	go func() {
+		tEnv.server.Start()
+	}()
 }
 
 func (tEnv *TestEnv) Close() {

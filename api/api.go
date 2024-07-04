@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -110,30 +111,10 @@ func (server *Server) Extend(f func(r *gin.Engine)) {
 }
 
 func (server *Server) Start() {
-	go func() {
-		defer server.Close()
-		err := server.httpServer.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
-			panic("error starting server. " + err.Error())
-		}
-	}()
-	ready := make(chan bool, 1)
-	go func() {
-		var (
-			res *http.Response
-			err error
-		)
-
-		for res == nil || res.StatusCode != http.StatusOK {
-			res, err = http.Get(server.URL() + "/health")
-			if err != nil {
-				panic("error getting health check. " + err.Error())
-			}
-		}
-
-		ready <- true
-	}()
-	<-ready
+	err := server.httpServer.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		log.Fatal("error starting server. " + err.Error())
+	}
 }
 
 func (server *Server) URL() string {

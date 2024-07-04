@@ -6,16 +6,23 @@ require (
 	github.com/brianvoe/gofakeit v3.18.0+incompatible
 	github.com/fergusstrange/embedded-postgres v1.27.0
 	github.com/gin-gonic/gin v1.10.0
-	github.com/google/uuid v1.6.0
+	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/jackc/pgx/v5 v5.5.5
+	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 )
 
 require (
+	github.com/briandowns/spinner v1.23.1 // indirect
+	github.com/fatih/color v1.7.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/cobra v1.8.1 // indirect
+	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	golang.org/x/term v0.20.0 // indirect
 )
 
 require (
