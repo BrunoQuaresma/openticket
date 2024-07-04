@@ -22,7 +22,7 @@ func main() {
 			s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 
 			loading(s, "Starting local database...", "✔ Local database started")
-			localDB := database.NewLocalDatabase(5433, ".openticket", io.Discard)
+			localDB := database.NewLocalDatabase(5432, ".openticket", io.Discard)
 			defer localDB.Stop()
 			err := localDB.Start()
 			if err != nil {
