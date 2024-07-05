@@ -3,6 +3,7 @@ module github.com/BrunoQuaresma/openticket
 go 1.22.1
 
 require (
+	github.com/briandowns/spinner v1.23.1
 	github.com/brianvoe/gofakeit v3.18.0+incompatible
 	github.com/fergusstrange/embedded-postgres v1.27.0
 	github.com/gin-gonic/gin v1.10.0
@@ -13,7 +14,6 @@ require (
 )
 
 require (
-	github.com/briandowns/spinner v1.23.1 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
