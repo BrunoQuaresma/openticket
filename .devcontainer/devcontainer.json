@@ -18,7 +18,11 @@
 				"ms-vscode-remote.remote-containers",
 				"golang.go",
 				"dbaeumer.vscode-eslint",
-				"esbenp.prettier-vscode"
+				"esbenp.prettier-vscode",
+				"bradlc.vscode-tailwindcss",
+				"vunguyentuan.vscode-postcss",
+				"christian-kohler.npm-intellisense",
+				"dsznajder.es7-react-js-snippets"
 			]
 		}
 	}
