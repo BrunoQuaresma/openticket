@@ -13,7 +13,7 @@ import {
 } from "./ui/form";
 import { OpenticketSdk } from "./sdk";
 import { useToast } from "./ui/use-toast";
-import { ToastAction } from "./ui/toast";
+import { capitalize } from "./utils";
 
 const setupFormSchema = z
   .object({
@@ -44,23 +44,12 @@ export function SetupPage() {
   });
 
   async function onSubmit(values: SetupFormValues) {
-    try {
-      const sdk = new OpenticketSdk();
-      await sdk.setup(values);
-    } catch {
-      toast({
+    const sdk = new OpenticketSdk();
+    const res = await sdk.setup(values);
+    if (OpenticketSdk.isErrorResponse(res)) {
+      return toast({
         title: "Something went wrong",
-        description: "We were unable to setup your account. Please try again.",
-        action: (
-          <ToastAction
-            altText="Try again"
-            onClick={() => {
-              void onSubmit(values);
-            }}
-          >
-            Try again
-          </ToastAction>
-        ),
+        description: capitalize(res.message),
       });
     }
   }

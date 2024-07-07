@@ -6,22 +6,46 @@ import {
 } from "./types";
 import axios, { AxiosInstance } from "axios";
 
+type ErrorResponse = {
+  message: string;
+  errors?: { field: string; validator: string }[];
+};
+
 export class OpenticketSdk {
   private client: AxiosInstance;
 
   constructor(token?: string) {
     this.client = axios.create({
-      baseURL: "http://localhost:8080/api",
+      baseURL: "/api",
       timeout: 1_000,
       headers: { "OPENTICKET-TOKEN": token },
     });
   }
 
   async setup(req: SetupRequest) {
-    return this.client.post<SetupResponse>("/setup", req);
+    return this.post<SetupResponse>("/setup", req);
   }
 
   async login(req: LoginRequest) {
-    return this.client.post<LoginResponse>("/login", req);
+    return this.post<LoginResponse>("/login", req);
+  }
+
+  static isErrorResponse(res: unknown): res is ErrorResponse {
+    return typeof res === "object" && res !== null && "message" in res;
+  }
+
+  private async post<TResponse, TRequest = unknown>(
+    path: string,
+    req: TRequest
+  ) {
+    return this.client
+      .post<TResponse>(path, req)
+      .then((res) => res.data)
+      .catch((err) => {
+        if (axios.isAxiosError(err) && err.response?.data) {
+          return err.response.data as ErrorResponse;
+        }
+        throw err;
+      });
   }
 }
