@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const SessionTokenHeader = "OPENTICKET-SESSION-TOKEN"
+const SessionTokenHeader = "OPENTICKET-TOKEN"
 const userCtxKey = "user"
 
 func (server *Server) AuthRequired(c *gin.Context) {
