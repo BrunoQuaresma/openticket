@@ -68,7 +68,7 @@ func main() {
 		},
 	}
 
-	rootCmd.Flags().IntP("port", "p", 8080, "Port to run the server on.")
+	rootCmd.Flags().IntP("port", "p", 3000, "Port to run the server on.")
 
 	err := rootCmd.Execute()
 	if err != nil {

@@ -72,30 +72,33 @@ func NewServer(port int, database *database.Connection, mode string) *Server {
 		server.router = gin.Default()
 	}
 
-	server.router.GET("/health", server.health)
-	server.router.POST("/setup", server.setup)
-	server.router.POST("/login", server.login)
-
-	authenticated := server.router.Group("/")
-	authenticated.Use(server.AuthRequired)
+	root := server.router.Group("/api")
 	{
-		authenticated.POST("/users", server.createUser)
-		authenticated.DELETE("/users/:id", server.deleteUser)
-		authenticated.PATCH("/users/:id", server.patchUser)
+		root.GET("/health", server.health)
+		root.POST("/setup", server.setup)
+		root.POST("/login", server.login)
 
-		authenticated.POST("/tickets", server.createTicket)
-		authenticated.GET("/tickets", server.tickets)
-		authenticated.GET("/tickets/:ticketId", server.ticket)
-		authenticated.DELETE("/tickets/:ticketId", server.deleteTicket)
-		authenticated.PATCH("/tickets/:ticketId", server.patchTicket)
-		authenticated.PATCH("/tickets/:ticketId/status", server.patchTicketStatus)
+		auth := root.Group("/")
+		auth.Use(server.AuthRequired)
+		{
+			auth.POST("/users", server.createUser)
+			auth.DELETE("/users/:id", server.deleteUser)
+			auth.PATCH("/users/:id", server.patchUser)
 
-		authenticated.POST("/tickets/:ticketId/comments", server.createComment)
-		authenticated.DELETE("/tickets/:ticketId/comments/:commentId", server.deleteComment)
-		authenticated.PATCH("/tickets/:ticketId/comments/:commentId", server.patchComment)
+			auth.POST("/tickets", server.createTicket)
+			auth.GET("/tickets", server.tickets)
+			auth.GET("/tickets/:ticketId", server.ticket)
+			auth.DELETE("/tickets/:ticketId", server.deleteTicket)
+			auth.PATCH("/tickets/:ticketId", server.patchTicket)
+			auth.PATCH("/tickets/:ticketId/status", server.patchTicketStatus)
 
-		authenticated.POST("/tickets/:ticketId/assignments", server.createAssignment)
-		authenticated.DELETE("/tickets/:ticketId/assignments/:assignmentId", server.deleteAssignment)
+			auth.POST("/tickets/:ticketId/comments", server.createComment)
+			auth.DELETE("/tickets/:ticketId/comments/:commentId", server.deleteComment)
+			auth.PATCH("/tickets/:ticketId/comments/:commentId", server.patchComment)
+
+			auth.POST("/tickets/:ticketId/assignments", server.createAssignment)
+			auth.DELETE("/tickets/:ticketId/assignments/:assignmentId", server.deleteAssignment)
+		}
 	}
 
 	server.httpServer = &http.Server{

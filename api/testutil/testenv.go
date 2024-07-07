@@ -98,7 +98,7 @@ func (tEnv *TestEnv) Setup() setup {
 }
 
 func (tEnv *TestEnv) SDK() sdk.Client {
-	return sdk.New(tEnv.Server().URL())
+	return sdk.New(tEnv.Server().URL() + "/api")
 }
 
 func (tEnv *TestEnv) AuthSDK(email string, password string) sdk.Client {
