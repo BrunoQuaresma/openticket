@@ -39,7 +39,7 @@ func TestAPI_AuthRequired(t *testing.T) {
 		var client http.Client
 		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
 		require.NoError(t, err, "error creating request")
-		req.Header.Set(api.SessionTokenHeader, "invalid-token")
+		req.Header.Set(api.TokenHeader, "invalid-token")
 
 		res, err := client.Do(req)
 		require.NoError(t, err, "error making admin test request")
@@ -60,7 +60,7 @@ func TestAPI_AuthRequired(t *testing.T) {
 		var client http.Client
 		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
 		require.NoError(t, err, "error creating request")
-		req.Header.Set(api.SessionTokenHeader, loginRes.Data.SessionToken)
+		req.Header.Set(api.TokenHeader, loginRes.Data.SessionToken)
 		res, err := client.Do(req)
 		require.NoError(t, err, "error making admin test request")
 		require.Equal(t, http.StatusOK, res.StatusCode, "expect ok status code")

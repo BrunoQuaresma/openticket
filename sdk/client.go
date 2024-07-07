@@ -56,7 +56,7 @@ func (client *Client) request(method string, path string, req any, res any) (*ht
 	}
 	httpReq.Header.Set("Application-Type", "application/json")
 	if client.sessionToken != "" {
-		httpReq.Header.Set(api.SessionTokenHeader, client.sessionToken)
+		httpReq.Header.Set(api.TokenHeader, client.sessionToken)
 	}
 	httpRes, err := httpClient.Do(httpReq)
 	if err != nil {

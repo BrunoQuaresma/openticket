@@ -17,11 +17,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const SessionTokenHeader = "OPENTICKET-TOKEN"
+const TokenHeader = "OPENTICKET-TOKEN"
 const userCtxKey = "user"
 
 func (server *Server) AuthRequired(c *gin.Context) {
-	sessionToken := c.Request.Header.Get(SessionTokenHeader)
+	sessionToken := c.Request.Header.Get(TokenHeader)
 	ctx := context.Background()
 	sum := sha256.Sum256([]byte(sessionToken))
 	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
