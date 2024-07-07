@@ -11,6 +11,7 @@ import {
   FormLabel,
   FormMessage,
 } from "./ui/form";
+import { OpenticketSdk } from "./sdk";
 
 const loginFormSchema = z.object({
   email: z.string().email(),
@@ -28,7 +29,10 @@ export function LoginPage() {
     },
   });
 
-  async function onSubmit(values: LoginFormValues) {}
+  async function onSubmit(values: LoginFormValues) {
+    const sdk = new OpenticketSdk();
+    await sdk.login(values);
+  }
 
   return (
     <div className="max-w-sm mx-auto px-6">

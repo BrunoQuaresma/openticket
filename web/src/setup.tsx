@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -12,14 +11,20 @@ import {
   FormLabel,
   FormMessage,
 } from "./ui/form";
+import { OpenticketSdk } from "./sdk";
 
-const setupFormSchema = z.object({
-  name: z.string().min(3),
-  username: z.string().min(3),
-  email: z.string().email(),
-  password: z.string().min(8),
-  confirmPassword: z.string().min(8),
-});
+const setupFormSchema = z
+  .object({
+    name: z.string().min(3, "Name must be at least 3 characters"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    email: z.string().email(),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 type SetupFormValues = z.infer<typeof setupFormSchema>;
 
@@ -35,7 +40,10 @@ export function SetupPage() {
     },
   });
 
-  async function onSubmit(values: SetupFormValues) {}
+  async function onSubmit(values: SetupFormValues) {
+    const sdk = new OpenticketSdk();
+    await sdk.setup(values);
+  }
 
   return (
     <div className="max-w-sm mx-auto py-16 px-6">
@@ -48,7 +56,10 @@ export function SetupPage() {
       </header>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <fieldset className="space-y-4">
+          <fieldset
+            className="space-y-4"
+            disabled={form.formState.isSubmitting}
+          >
             <FormField
               control={form.control}
               name="name"
@@ -110,7 +121,7 @@ export function SetupPage() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Confirm password</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
@@ -120,7 +131,7 @@ export function SetupPage() {
             />
 
             <Button type="submit" className="w-full" size="lg">
-              Setup first user
+              {form.formState.isSubmitting ? "Setting up..." : "Setup"}
             </Button>
           </fieldset>
         </form>
