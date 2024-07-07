@@ -12,6 +12,8 @@ import {
   FormMessage,
 } from "./ui/form";
 import { OpenticketSdk } from "./sdk";
+import { useToast } from "./ui/use-toast";
+import { ToastAction } from "./ui/toast";
 
 const setupFormSchema = z
   .object({
@@ -29,6 +31,7 @@ const setupFormSchema = z
 type SetupFormValues = z.infer<typeof setupFormSchema>;
 
 export function SetupPage() {
+  const { toast } = useToast();
   const form = useForm<SetupFormValues>({
     resolver: zodResolver(setupFormSchema),
     defaultValues: {
@@ -41,8 +44,25 @@ export function SetupPage() {
   });
 
   async function onSubmit(values: SetupFormValues) {
-    const sdk = new OpenticketSdk();
-    await sdk.setup(values);
+    try {
+      const sdk = new OpenticketSdk();
+      await sdk.setup(values);
+    } catch {
+      toast({
+        title: "Something went wrong",
+        description: "We were unable to setup your account. Please try again.",
+        action: (
+          <ToastAction
+            altText="Try again"
+            onClick={() => {
+              void onSubmit(values);
+            }}
+          >
+            Try again
+          </ToastAction>
+        ),
+      });
+    }
   }
 
   return (
