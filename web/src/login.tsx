@@ -1,30 +1,77 @@
+import { z } from "zod";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "./ui/form";
+
+const loginFormSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 export function LoginPage() {
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  async function onSubmit(values: LoginFormValues) {}
+
   return (
     <div className="max-w-sm mx-auto px-6">
       <header className="pt-16 pb-8">
         <h1 className="text-4xl font-extrabold tracking-tight">Login</h1>
       </header>
-      <form action="">
-        <fieldset className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoFocus />
-          </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <fieldset className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" autoFocus {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" />
-          </div>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <Button className="w-full" size="lg">
-            Login
-          </Button>
-        </fieldset>
-      </form>
+            <Button type="submit" className="w-full" size="lg">
+              Login
+            </Button>
+          </fieldset>
+        </form>
+      </Form>
     </div>
   );
 }
