@@ -1,4 +1,5 @@
 import {
+  HealthResponse,
   LoginRequest,
   LoginResponse,
   SetupRequest,
@@ -17,7 +18,7 @@ export class OpenticketSdk {
   constructor(token?: string) {
     this.client = axios.create({
       baseURL: "/api",
-      timeout: 1_000,
+      timeout: 5_000,
       headers: { "OPENTICKET-TOKEN": token },
     });
   }
@@ -28,6 +29,10 @@ export class OpenticketSdk {
 
   async login(req: LoginRequest) {
     return this.post<LoginResponse>("/login", req);
+  }
+
+  async health() {
+    return this.client.get<HealthResponse>("/health").then((res) => res.data);
   }
 
   static isErrorResponse(res: unknown): res is ErrorResponse {

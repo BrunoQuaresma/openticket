@@ -2,12 +2,12 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { SetupPage } from "./setup";
 import { LoginPage } from "./login";
 import { Toaster } from "./ui/toaster";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StatusProvider } from "./status";
+
+const queryClient = new QueryClient();
 
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <SetupPage />,
-  },
   {
     path: "/login",
     element: <LoginPage />,
@@ -16,10 +16,12 @@ const router = createBrowserRouter([
 
 export function App() {
   return (
-    <>
-      <RouterProvider router={router} />
+    <QueryClientProvider client={queryClient}>
+      <StatusProvider setup={<SetupPage />}>
+        <RouterProvider router={router} />
+      </StatusProvider>
       <Toaster />
-    </>
+    </QueryClientProvider>
   );
 }
 
