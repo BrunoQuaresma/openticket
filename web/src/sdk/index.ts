@@ -1,11 +1,11 @@
+import axios, { AxiosInstance } from "axios";
 import {
   LoginRequest,
   LoginResponse,
   SetupRequest,
   SetupResponse,
   StatusResponse,
-} from "./types";
-import axios, { AxiosInstance } from "axios";
+} from "./types.gen";
 
 type ErrorResponse = {
   message: string;

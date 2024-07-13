@@ -10,6 +10,7 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 # DB Tools
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+RUN go install github.com/gzuidhof/tygo@latest
 
 USER root
 

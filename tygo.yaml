@@ -1,0 +1,10 @@
+packages:
+  - path: "github.com/BrunoQuaresma/openticket/api"
+    output_path: "web/src/sdk/types.gen.ts"
+    type_mappings:
+      time.Time: "string /* RFC3339 */"
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+    frontmatter: |
+      /* eslint-disable @typescript-eslint/no-explicit-any */
+      /* eslint-disable @typescript-eslint/no-unnecessary-type-constraint */

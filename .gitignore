@@ -1,3 +1,4 @@
 tmp
 sqlc
 .openticket
+types.gen.ts
