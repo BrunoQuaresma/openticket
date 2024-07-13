@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -10,10 +10,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "./ui/form";
-import { OpenticketSdk } from "./sdk";
-import { useToast } from "./ui/use-toast";
-import { capitalize } from "./utils";
+} from "../ui/form";
+import { OpenticketSdk } from "../sdk";
+import { useToast } from "../ui/use-toast";
+import { capitalize } from "../utils";
 
 const setupFormSchema = z
   .object({

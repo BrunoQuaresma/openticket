@@ -1,6 +1,6 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { SetupPage } from "./setup";
-import { LoginPage } from "./login";
+import { SetupPage } from "./pages/setup";
+import { LoginPage } from "./pages/login";
 import { Toaster } from "./ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusProvider } from "./status";
