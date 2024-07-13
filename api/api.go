@@ -74,7 +74,7 @@ func NewServer(port int, database *database.Connection, mode string) *Server {
 
 	root := server.router.Group("/api")
 	{
-		root.GET("/health", server.health)
+		root.GET("/status", server.status)
 		root.POST("/setup", server.setup)
 		root.POST("/login", server.login)
 

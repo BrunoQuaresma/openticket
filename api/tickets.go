@@ -30,7 +30,7 @@ type Ticket struct {
 type CreateTicketResponse = Response[Ticket]
 
 func (server *Server) createTicket(c *gin.Context) {
-	user := server.AuthUser(c)
+	user := server.AuthUserFromContext(c)
 
 	var req CreateTicketRequest
 	server.jsonReq(c, &req)
@@ -215,7 +215,7 @@ func (e TicketNotFoundError) Error() string {
 }
 
 func (server *Server) deleteTicket(c *gin.Context) {
-	user := server.AuthUser(c)
+	user := server.AuthUserFromContext(c)
 
 	ticketId, err := strconv.ParseInt(c.Param("ticketId"), 10, 32)
 	if err != nil {
@@ -257,7 +257,7 @@ type PatchTicketRequest struct {
 type PatchTicketResponse = Response[Ticket]
 
 func (server *Server) patchTicket(c *gin.Context) {
-	user := server.AuthUser(c)
+	user := server.AuthUserFromContext(c)
 
 	ticketId, err := strconv.ParseInt(c.Param("ticketId"), 10, 32)
 	if err != nil {

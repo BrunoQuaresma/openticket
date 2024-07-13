@@ -27,7 +27,7 @@ type Comment struct {
 type CreateCommentResponse = Response[Comment]
 
 func (server *Server) createComment(c *gin.Context) {
-	user := server.AuthUser(c)
+	user := server.AuthUserFromContext(c)
 
 	ticketId, err := strconv.ParseUint(c.Param("ticketId"), 10, 32)
 	if err != nil {
@@ -74,7 +74,7 @@ func (e CommentNotFoundError) Error() string {
 }
 
 func (server *Server) deleteComment(c *gin.Context) {
-	user := server.AuthUser(c)
+	user := server.AuthUserFromContext(c)
 
 	commentId, err := strconv.ParseInt(c.Param("commentId"), 10, 32)
 	if err != nil {
@@ -114,7 +114,7 @@ type PatchCommentRequest struct {
 type PatchCommentResponse = Response[Comment]
 
 func (server *Server) patchComment(c *gin.Context) {
-	user := server.AuthUser(c)
+	user := server.AuthUserFromContext(c)
 
 	commentId, err := strconv.ParseInt(c.Param("commentId"), 10, 32)
 	if err != nil {

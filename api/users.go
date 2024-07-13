@@ -30,7 +30,7 @@ type User struct {
 type CreateUserResponse = Response[User]
 
 func (server *Server) createUser(c *gin.Context) {
-	authUser := server.AuthUser(c)
+	authUser := server.AuthUserFromContext(c)
 	if authUser.Role != "admin" {
 		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can create users"})
 		return
@@ -112,7 +112,7 @@ func (server *Server) createUser(c *gin.Context) {
 }
 
 func (server *Server) deleteUser(c *gin.Context) {
-	user := server.AuthUser(c)
+	user := server.AuthUserFromContext(c)
 	if user.Role != "admin" {
 		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{Message: "only admins can delete users"})
 		return
@@ -155,7 +155,7 @@ func (server *Server) patchUser(c *gin.Context) {
 		return
 	}
 
-	authUser := server.AuthUser(c)
+	authUser := server.AuthUserFromContext(c)
 	if authUser.Role != "admin" && authUser.ID != int32(id) {
 		c.AbortWithStatusJSON(http.StatusForbidden, Response[any]{
 			Message: "only admins can update other users",

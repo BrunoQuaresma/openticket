@@ -1,9 +1,9 @@
 import {
-  HealthResponse,
   LoginRequest,
   LoginResponse,
   SetupRequest,
   SetupResponse,
+  StatusResponse,
 } from "./types";
 import axios, { AxiosInstance } from "axios";
 
@@ -31,8 +31,8 @@ export class OpenticketSdk {
     return this.post<LoginResponse>("/login", req);
   }
 
-  async health() {
-    return this.client.get<HealthResponse>("/health").then((res) => res.data);
+  async status() {
+    return this.client.get<StatusResponse>("/status").then((res) => res.data);
   }
 
   static isErrorResponse(res: unknown): res is ErrorResponse {

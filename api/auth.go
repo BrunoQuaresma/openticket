@@ -21,26 +21,13 @@ const TokenHeader = "OPENTICKET-TOKEN"
 const userCtxKey = "user"
 
 func (server *Server) AuthRequired(c *gin.Context) {
-	sessionToken := c.Request.Header.Get(TokenHeader)
-	ctx := context.Background()
-	sum := sha256.Sum256([]byte(sessionToken))
-	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
-	session, err := server.db.Queries().GetSessionByTokenHash(ctx, tokenHash)
+	user, err := server.AuthUser(c)
 
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			c.AbortWithStatus(401)
-		} else {
-			c.AbortWithError(500, err)
-		}
-		return
-	}
-	if session.ExpiresAt.Time.Before(time.Now()) {
+	if user == nil {
 		c.AbortWithStatus(401)
 		return
 	}
 
-	user, err := server.db.Queries().GetUserByID(ctx, session.UserID)
 	if err != nil {
 		c.AbortWithError(500, err)
 		return
@@ -50,13 +37,35 @@ func (server *Server) AuthRequired(c *gin.Context) {
 	c.Next()
 }
 
-func (server *Server) AuthUser(c *gin.Context) sqlc.User {
+func (server *Server) AuthUserFromContext(c *gin.Context) sqlc.User {
 	user, err := c.Get(userCtxKey)
 	if !err {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("user not found in context"))
+		c.AbortWithError(http.StatusInternalServerError, errors.New("user not found in context. Ensure the AuthRequired middleware is used in the route calling this function"))
 		return sqlc.User{}
 	}
 	return user.(sqlc.User)
+}
+
+func (server *Server) AuthUser(c *gin.Context) (user *sqlc.User, err error) {
+	sessionToken := c.Request.Header.Get(TokenHeader)
+	sum := sha256.Sum256([]byte(sessionToken))
+	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
+	session, err := server.db.Queries().GetSessionByTokenHash(c, tokenHash)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if session.ExpiresAt.Time.Before(time.Now()) {
+		return nil, nil
+	}
+
+	result, err := server.db.Queries().GetUserByID(c, session.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 type LoginRequest struct {

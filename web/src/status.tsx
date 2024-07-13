@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { OpenticketSdk } from "./sdk";
-import { HealthResponse } from "./sdk/types";
+import { StatusResponse } from "./sdk/types";
 import { PropsWithChildren, ReactNode, createContext } from "react";
 
-const StatusContext = createContext<HealthResponse | undefined>(undefined);
+const StatusContext = createContext<StatusResponse | undefined>(undefined);
 
 type StatusProviderProps = {
   // The StatusProvider component renders this element when the setup is not
@@ -18,11 +18,10 @@ export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
     isError,
     data: res,
   } = useQuery({
-    queryKey: ["health"],
-    queryFn: () => sdk.health(),
+    queryKey: ["status"],
+    queryFn: () => sdk.status(),
     staleTime: Infinity,
   });
-
   if (isLoading) {
     return <div>Loading...</div>;
   }

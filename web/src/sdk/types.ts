@@ -22,7 +22,12 @@ export type LoginResponse = Response<{
   token: string;
 }>;
 
-export type HealthResponse = Response<{
-  setup: true;
-  health: true;
+export type StatusResponse = Response<{
+  setup: boolean;
+  user?: {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+  };
 }>;

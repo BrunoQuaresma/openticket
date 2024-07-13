@@ -21,7 +21,7 @@ type Assignment struct {
 type CreateAssignmentResponse = Response[Assignment]
 
 func (server *Server) createAssignment(c *gin.Context) {
-	user := server.AuthUser(c)
+	user := server.AuthUserFromContext(c)
 
 	var req CreateAssignmentRequest
 	server.jsonReq(c, &req)
