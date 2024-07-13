@@ -1,17 +1,16 @@
 import { z } from "zod";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { useForm } from "react-hook-form";
+import { Form, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { OpenticketSdk } from "../sdk";
+import { Button } from "../ui/button";
 import {
-  Form,
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormControl,
   FormMessage,
-} from "./ui/form";
-import { OpenticketSdk } from "./sdk";
+} from "../ui/form";
+import { Input } from "../ui/input";
 
 const loginFormSchema = z.object({
   email: z.string().email(),
