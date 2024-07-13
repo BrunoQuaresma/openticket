@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { OpenticketSdk } from "./sdk";
 import { StatusResponse } from "./sdk/types";
-import { PropsWithChildren, ReactNode, createContext } from "react";
+import { PropsWithChildren, ReactNode, createContext, useContext } from "react";
 
 const StatusContext = createContext<StatusResponse | undefined>(undefined);
 
@@ -39,4 +39,14 @@ export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
       {props.children}
     </StatusContext.Provider>
   );
+}
+
+export function useStatus() {
+  const context = useContext(StatusContext);
+
+  if (context === undefined) {
+    throw new Error("useStatus must be used within a StatusProvider");
+  }
+
+  return context;
 }

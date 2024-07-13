@@ -22,7 +22,8 @@
 				"bradlc.vscode-tailwindcss",
 				"vunguyentuan.vscode-postcss",
 				"christian-kohler.npm-intellisense",
-				"dsznajder.es7-react-js-snippets"
+				"dsznajder.es7-react-js-snippets",
+				"vitest.explorer"
 			]
 		}
 	}
