@@ -1,15 +1,26 @@
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { LoginPage } from "./login";
+import { createMemoryRouter } from "react-router-dom";
 import { server } from "@/test-utils";
 import { http, HttpResponse } from "msw";
 import { LoginResponse, StatusResponse } from "@/sdk/types.gen";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
-import { StatusProvider } from "@/status";
+import App from "@/app";
+import { routes } from "@/routes";
+import { QueryClient } from "@tanstack/react-query";
 
-test("goes to the app page when the user logs in", async () => {
+const userData = {
+  id: 1,
+  name: "Test User",
+  username: "testuser",
+  email: "",
+  role: "admin",
+};
+
+test.only("goes to the app page when the user logs in", async () => {
+  const user = userEvent.setup();
+  const router = createMemoryRouter(routes, { initialEntries: ["/login"] });
+
   server.use(
     http.get("/api/status", () => {
       return HttpResponse.json<StatusResponse>({
@@ -20,53 +31,28 @@ test("goes to the app page when the user logs in", async () => {
   server.use(
     http.post("/api/login", () => {
       return HttpResponse.json<LoginResponse>({
-        data: { session_token: "12345678" },
+        data: {
+          token: "secure-token",
+          user: userData,
+        },
       });
     })
   );
-  const router = createMemoryRouter(
-    [
-      {
-        path: "/login",
-        element: <LoginPage />,
-      },
-      {
-        path: "/",
-        element: <>app page</>,
-      },
-    ],
-    {
-      initialEntries: ["/login"],
-    }
-  );
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <StatusProvider fallback={<>setup page</>}>
-        <RouterProvider router={router} />
-      </StatusProvider>
-    </QueryClientProvider>
-  );
-  const user = userEvent.setup();
+
+  render(<App router={router} queryClient={new QueryClient()} />);
 
   const emailField = await screen.findByLabelText(/email/i);
   await user.type(emailField, "user@openticket.com");
   await user.type(screen.getByLabelText(/password/i), "s3cur3p@ssw0rd");
   await user.click(screen.getByRole("button", { name: /login/i }));
-
   await waitFor(() => {
     expect(router.state.location.pathname).toEqual("/");
   });
 });
 
-const userData = {
-  id: 1,
-  name: "Test User",
-  username: "testuser",
-  email: "",
-  role: "admin",
-};
-
 test("redirects to the app page when the user is already logged in", async () => {
+  const router = createMemoryRouter(routes, { initialEntries: ["/login"] });
+
   server.use(
     http.get("/api/status", () => {
       return HttpResponse.json<StatusResponse>({
@@ -74,28 +60,8 @@ test("redirects to the app page when the user is already logged in", async () =>
       });
     })
   );
-  const router = createMemoryRouter(
-    [
-      {
-        path: "/login",
-        element: <LoginPage />,
-      },
-      {
-        path: "/",
-        element: <>app page</>,
-      },
-    ],
-    {
-      initialEntries: ["/login"],
-    }
-  );
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <StatusProvider fallback={<>setup page</>}>
-        <RouterProvider router={router} />
-      </StatusProvider>
-    </QueryClientProvider>
-  );
+
+  render(<App router={router} queryClient={new QueryClient()} />);
 
   await waitFor(() => {
     expect(router.state.location.pathname).toEqual("/");

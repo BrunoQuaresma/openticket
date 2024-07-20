@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { OpenticketSdk } from "../sdk";
+import { isSuccess, OpenticketSdk } from "../sdk";
 import { Button } from "../ui/button";
 import {
   FormField,
@@ -14,6 +14,7 @@ import {
 import { Input } from "../ui/input";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useStatus } from "@/status";
+import { useMutation } from "@tanstack/react-query";
 
 const loginFormSchema = z.object({
   email: z.string().email(),
@@ -23,8 +24,21 @@ const loginFormSchema = z.object({
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 export function LoginPage() {
+  const sdk = new OpenticketSdk();
   const navigate = useNavigate();
   const status = useStatus();
+  const loginMutation = useMutation({
+    mutationFn: sdk.login,
+    onSuccess: async (res) => {
+      if (isSuccess(res)) {
+        status.authenticate(res.data.user);
+        navigate("/");
+      }
+    },
+    onError: (err) => {
+      console.error(err);
+    },
+  });
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -34,13 +48,7 @@ export function LoginPage() {
     },
   });
 
-  async function onSubmit(values: LoginFormValues) {
-    const sdk = new OpenticketSdk();
-    await sdk.login(values);
-    navigate("/");
-  }
-
-  if (status.data?.user) {
+  if (status.data.user) {
     return <Navigate to="/" replace />;
   }
 
@@ -50,7 +58,11 @@ export function LoginPage() {
         <h1 className="text-4xl font-extrabold tracking-tight">Login</h1>
       </header>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form
+          onSubmit={form.handleSubmit((values) => {
+            loginMutation.mutate(values);
+          })}
+        >
           <fieldset className="space-y-4">
             <FormField
               control={form.control}

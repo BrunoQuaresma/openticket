@@ -1,27 +1,45 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { OpenticketSdk } from "./sdk";
 import { PropsWithChildren, ReactNode, createContext, useContext } from "react";
-import { StatusResponse } from "./sdk/types.gen";
+import { StatusResponse, User } from "./sdk/types.gen";
 
-const StatusContext = createContext<StatusResponse | undefined>(undefined);
+type StatusContextValue = {
+  data: NonNullable<StatusResponse["data"]>;
+  authenticate: (user: User) => void;
+};
+
+const StatusContext = createContext<StatusContextValue | undefined>(undefined);
 
 type StatusProviderProps = {
-  // The StatusProvider component renders this element when the setup is not
-  // complete.
   fallback: ReactNode;
 };
 
+const statusQueryKey = ["status"];
+
 export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
+  const queryClient = useQueryClient();
   const sdk = new OpenticketSdk();
   const {
     isLoading,
     isError,
     data: res,
   } = useQuery({
-    queryKey: ["status"],
+    queryKey: statusQueryKey,
     queryFn: () => sdk.status(),
     staleTime: Infinity,
   });
+
+  function authenticate(user: User) {
+    const newStatusData: StatusResponse = {
+      data: {
+        setup: true,
+        user,
+      },
+    };
+
+    queryClient.setQueryData(statusQueryKey, newStatusData);
+  }
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -35,7 +53,7 @@ export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
   }
 
   return (
-    <StatusContext.Provider value={res}>
+    <StatusContext.Provider value={{ data: res.data, authenticate }}>
       {props.children}
     </StatusContext.Provider>
   );

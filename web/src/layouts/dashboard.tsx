@@ -4,7 +4,7 @@ import { useStatus } from "../status";
 export function Dashboard() {
   const { data } = useStatus();
 
-  if (!data?.user) {
+  if (!data.user) {
     return <Navigate to="/login" replace />;
   }
 

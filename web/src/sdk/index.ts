@@ -5,12 +5,15 @@ import {
   SetupRequest,
   SetupResponse,
   StatusResponse,
+  Response,
 } from "./types.gen";
 
 type ErrorResponse = {
   message: string;
   errors?: { field: string; validator: string }[];
 };
+
+type SuccessResponse<T> = T extends Response<infer U> ? { data: U } : never;
 
 export class OpenticketSdk {
   private client: AxiosInstance;
@@ -27,12 +30,14 @@ export class OpenticketSdk {
     return this.post<SetupResponse>("/setup", req);
   }
 
-  async login(req: LoginRequest) {
+  login = async (req: LoginRequest) => {
     return this.post<LoginResponse>("/login", req);
-  }
+  };
 
   async status() {
-    return this.client.get<StatusResponse>("/status").then((res) => res.data);
+    return this.client
+      .get<SuccessResponse<StatusResponse>>("/status")
+      .then((res) => res.data);
   }
 
   static isErrorResponse(res: unknown): res is ErrorResponse {
@@ -45,7 +50,7 @@ export class OpenticketSdk {
   ) {
     return this.client
       .post<TResponse>(path, req)
-      .then((res) => res.data)
+      .then((res) => res.data as SuccessResponse<TResponse>)
       .catch((err) => {
         if (axios.isAxiosError(err) && err.response?.data) {
           return err.response.data as ErrorResponse;
@@ -53,4 +58,8 @@ export class OpenticketSdk {
         throw err;
       });
   }
+}
+
+export function isSuccess<T>(res: ErrorResponse | T): res is T {
+  return !(res as ErrorResponse).errors;
 }

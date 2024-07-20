@@ -5,10 +5,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusProvider } from "./status";
 import { routes } from "./routes";
 
-const queryClient = new QueryClient();
-const router = createBrowserRouter(routes);
+type Router = ReturnType<typeof createBrowserRouter>;
 
-export function App() {
+const defaultQueryClient = new QueryClient();
+const defaultRouter = createBrowserRouter(routes);
+
+type AppProps = {
+  queryClient?: QueryClient;
+  router?: Router;
+};
+
+export function App({
+  queryClient = defaultQueryClient,
+  router = defaultRouter,
+}: AppProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusProvider fallback={<SetupPage />}>

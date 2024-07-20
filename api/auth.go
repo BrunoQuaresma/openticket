@@ -73,9 +73,12 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type LoginResponse = Response[struct {
-	SessionToken string `json:"session_token"`
-}]
+type LoginData struct {
+	User  User   `json:"user"`
+	Token string `json:"token"`
+}
+
+type LoginResponse = Response[LoginData]
 
 func (server *Server) login(c *gin.Context) {
 	var req LoginRequest
@@ -120,10 +123,18 @@ func (server *Server) login(c *gin.Context) {
 		return
 	}
 
-	var res LoginResponse
-	res.Data.SessionToken = token
-
-	c.JSON(200, res)
+	c.JSON(200, LoginResponse{
+		Data: LoginData{
+			User: User{
+				ID:       user.ID,
+				Name:     user.Name,
+				Username: user.Username,
+				Email:    user.Email,
+				Role:     string(user.Role),
+			},
+			Token: token,
+		},
+	})
 }
 
 func secureToken() (string, error) {
