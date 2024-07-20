@@ -1,14 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { OpenticketSdk } from "./sdk";
-import { StatusResponse } from "./sdk/types";
 import { PropsWithChildren, ReactNode, createContext, useContext } from "react";
+import { StatusResponse } from "./sdk/types.gen";
 
 const StatusContext = createContext<StatusResponse | undefined>(undefined);
 
 type StatusProviderProps = {
   // The StatusProvider component renders this element when the setup is not
   // complete.
-  setup: ReactNode;
+  fallback: ReactNode;
 };
 
 export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
@@ -30,8 +30,8 @@ export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
     return <div>Something went wrong</div>;
   }
 
-  if (!res?.data.setup) {
-    return <>{props.setup}</>;
+  if (res?.data?.setup) {
+    return <>{props.fallback}</>;
   }
 
   return (

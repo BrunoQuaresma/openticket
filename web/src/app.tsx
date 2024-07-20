@@ -11,7 +11,7 @@ const router = createBrowserRouter(routes);
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusProvider setup={<SetupPage />}>
+      <StatusProvider fallback={<SetupPage />}>
         <RouterProvider router={router} />
       </StatusProvider>
       <Toaster />
