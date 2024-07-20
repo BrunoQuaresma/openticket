@@ -12,6 +12,8 @@ import {
   Form,
 } from "../ui/form";
 import { Input } from "../ui/input";
+import { Navigate, useNavigate } from "react-router-dom";
+import { useStatus } from "@/status";
 
 const loginFormSchema = z.object({
   email: z.string().email(),
@@ -21,6 +23,9 @@ const loginFormSchema = z.object({
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 export function LoginPage() {
+  const navigate = useNavigate();
+  const status = useStatus();
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
@@ -32,6 +37,11 @@ export function LoginPage() {
   async function onSubmit(values: LoginFormValues) {
     const sdk = new OpenticketSdk();
     await sdk.login(values);
+    navigate("/");
+  }
+
+  if (status.data?.user) {
+    return <Navigate to="/" replace />;
   }
 
   return (

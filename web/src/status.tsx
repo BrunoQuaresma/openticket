@@ -30,7 +30,7 @@ export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
     return <div>Something went wrong</div>;
   }
 
-  if (res?.data?.setup) {
+  if (!res?.data?.setup) {
     return <>{props.fallback}</>;
   }
 
