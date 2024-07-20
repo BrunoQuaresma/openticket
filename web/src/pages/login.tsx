@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Form, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { OpenticketSdk } from "../sdk";
 import { Button } from "../ui/button";
@@ -9,6 +9,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  Form,
 } from "../ui/form";
 import { Input } from "../ui/input";
 
