@@ -3,14 +3,15 @@ import { StatusProvider } from "./status";
 import { render, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
-import { StatusResponse } from "./sdk/types";
 import { server } from "./test-utils";
+import { StatusResponse } from "./sdk/types.gen";
 
 const user = {
   id: 1,
   name: "Test User",
   username: "testuser",
   email: "",
+  role: "admin",
 };
 
 test("shows setup page when setup is not complete", async () => {
@@ -26,7 +27,7 @@ test("shows setup page when setup is not complete", async () => {
 
   const { getByText } = render(
     <QueryClientProvider client={new QueryClient()}>
-      <StatusProvider setup={<div>setup component</div>}>
+      <StatusProvider fallback={<div>setup component</div>}>
         <div>children</div>
       </StatusProvider>
     </QueryClientProvider>
@@ -51,7 +52,7 @@ test("shows the children when setup is complete", async () => {
 
   const { getByText } = render(
     <QueryClientProvider client={new QueryClient()}>
-      <StatusProvider setup={<div>setup component</div>}>
+      <StatusProvider fallback={<div>setup component</div>}>
         <div>children</div>
       </StatusProvider>
     </QueryClientProvider>
