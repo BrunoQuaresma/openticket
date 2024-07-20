@@ -60,7 +60,7 @@ func TestAPI_AuthRequired(t *testing.T) {
 		var client http.Client
 		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
 		require.NoError(t, err, "error creating request")
-		req.Header.Set(api.TokenHeader, loginRes.Data.SessionToken)
+		req.Header.Set(api.TokenHeader, loginRes.Data.Token)
 		res, err := client.Do(req)
 		require.NoError(t, err, "error making admin test request")
 		require.Equal(t, http.StatusOK, res.StatusCode, "expect ok status code")
@@ -86,7 +86,7 @@ func TestAPI_Login(t *testing.T) {
 
 		require.NoError(t, err, "error making login request")
 		require.Equal(t, 200, httpRes.StatusCode, "unexpected status code")
-		require.NotEmpty(t, res.Data.SessionToken, "session token should not be empty")
+		require.NotEmpty(t, res.Data.Token, "session token should not be empty")
 	})
 
 	t.Run("error: wrong email", func(t *testing.T) {

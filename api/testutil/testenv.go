@@ -111,7 +111,7 @@ func (tEnv *TestEnv) AuthSDK(email string, password string) sdk.Client {
 	if err != nil {
 		tEnv.t.Fatal("error making login request" + err.Error())
 	}
-	sdk.Authenticate(loginRes.Data.SessionToken)
+	sdk.Authenticate(loginRes.Data.Token)
 	return sdk
 }
 
