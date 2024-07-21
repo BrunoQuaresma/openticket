@@ -37,15 +37,6 @@ type Response[T any] struct {
 	Message string            `json:"message,omitempty"`
 }
 
-type ServerError struct {
-	Res    Response[any]
-	Status int
-}
-
-func (e ServerError) Error() string {
-	return e.Res.Message
-}
-
 func NewServer(port int, database *database.Connection, mode string) *Server {
 	server := Server{db: database}
 

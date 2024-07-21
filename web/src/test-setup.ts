@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, afterEach } from "vitest";
 import { server } from "./test-utils";
+import "@testing-library/jest-dom/vitest";
 
 beforeAll(() => {
   server.listen({

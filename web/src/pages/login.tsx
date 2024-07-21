@@ -15,6 +15,7 @@ import { Input } from "../ui/input";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useStatus } from "@/status";
 import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/ui/use-toast";
 
 const loginFormSchema = z.object({
   email: z.string().email(),
@@ -25,15 +26,22 @@ type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 export function LoginPage() {
   const sdk = new OpenticketSdk();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const status = useStatus();
   const loginMutation = useMutation({
     mutationFn: sdk.login,
     onSuccess: async (res) => {
-      if (isSuccess(res)) {
-        status.authenticate(res.data.user);
-        navigate("/");
+      if (!isSuccess(res)) {
+        toast({
+          title: "Error on login",
+          description: res.message,
+        });
+        return;
       }
+
+      status.authenticate(res.data.user);
+      navigate("/");
     },
     onError: (err) => {
       console.error(err);
@@ -63,7 +71,7 @@ export function LoginPage() {
             loginMutation.mutate(values);
           })}
         >
-          <fieldset className="space-y-4">
+          <fieldset className="space-y-4" disabled={loginMutation.isPending}>
             <FormField
               control={form.control}
               name="email"

@@ -1,7 +1,7 @@
 import { createMemoryRouter } from "react-router-dom";
 import { server } from "@/test-utils";
 import { http, HttpResponse } from "msw";
-import { LoginResponse, StatusResponse } from "@/sdk/types.gen";
+import { LoginResponse, Response, StatusResponse } from "@/sdk/types.gen";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vitest";
@@ -17,7 +17,7 @@ const userData = {
   role: "admin",
 };
 
-test.only("goes to the app page when the user logs in", async () => {
+test("goes to the app page when the user logs in", async () => {
   const user = userEvent.setup();
   const router = createMemoryRouter(routes, { initialEntries: ["/login"] });
 
@@ -65,5 +65,37 @@ test("redirects to the app page when the user is already logged in", async () =>
 
   await waitFor(() => {
     expect(router.state.location.pathname).toEqual("/");
+  });
+});
+
+test.only("display errors from the server", async () => {
+  const user = userEvent.setup();
+  const router = createMemoryRouter(routes, { initialEntries: ["/login"] });
+  const errorMessage = "Invalid email or password";
+
+  server.use(
+    http.get("/api/status", () => {
+      return HttpResponse.json<StatusResponse>({
+        data: { setup: true, user: undefined },
+      });
+    })
+  );
+  server.use(
+    http.post("/api/login", () => {
+      return HttpResponse.json<Response<undefined>>(
+        { message: errorMessage },
+        { status: 401 }
+      );
+    })
+  );
+
+  render(<App router={router} queryClient={new QueryClient()} />);
+
+  const emailField = await screen.findByLabelText(/email/i);
+  await user.type(emailField, "user@openticket.com");
+  await user.type(screen.getByLabelText(/password/i), "s3cur3p@ssw0rd");
+  await user.click(screen.getByRole("button", { name: /login/i }));
+  await waitFor(() => {
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 });

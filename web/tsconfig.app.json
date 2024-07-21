@@ -28,7 +28,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-    }
+    },
+
+    /** Tests **/
+    "types": ["@testing-library/jest-dom"]
   },
   "include": ["src"],
   

@@ -61,5 +61,5 @@ export class OpenticketSdk {
 }
 
 export function isSuccess<T>(res: ErrorResponse | T): res is T {
-  return !(res as ErrorResponse).errors;
+  return !(res as ErrorResponse).message;
 }
