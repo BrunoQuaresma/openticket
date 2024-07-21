@@ -16,6 +16,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useStatus } from "@/status";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/ui/use-toast";
+import { capitalize } from "@/utils";
 
 const loginFormSchema = z.object({
   email: z.string().email(),
@@ -35,7 +36,7 @@ export function LoginPage() {
       if (!isSuccess(res)) {
         toast({
           title: "Error on login",
-          description: res.message,
+          description: capitalize(res.message),
         });
         return;
       }

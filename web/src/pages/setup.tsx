@@ -14,6 +14,7 @@ import {
 import { OpenticketSdk } from "../sdk";
 import { useToast } from "../ui/use-toast";
 import { capitalize } from "../utils";
+import { useStatus } from "@/status";
 
 const setupFormSchema = z
   .object({
@@ -31,6 +32,7 @@ const setupFormSchema = z
 type SetupFormValues = z.infer<typeof setupFormSchema>;
 
 export function SetupPage() {
+  const status = useStatus();
   const { toast } = useToast();
   const form = useForm<SetupFormValues>({
     resolver: zodResolver(setupFormSchema),
@@ -52,6 +54,7 @@ export function SetupPage() {
         description: capitalize(res.message),
       });
     }
+    status.finishSetup();
   }
 
   return (

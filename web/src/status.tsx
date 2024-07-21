@@ -6,6 +6,7 @@ import { StatusResponse, User } from "./sdk/types.gen";
 type StatusContextValue = {
   data: NonNullable<StatusResponse["data"]>;
   authenticate: (user: User) => void;
+  finishSetup: () => void;
 };
 
 const StatusContext = createContext<StatusContextValue | undefined>(undefined);
@@ -19,15 +20,22 @@ const statusQueryKey = ["status"];
 export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
   const queryClient = useQueryClient();
   const sdk = new OpenticketSdk();
-  const {
-    isLoading,
-    isError,
-    data: res,
-  } = useQuery({
+  const { isError, data: res } = useQuery({
     queryKey: statusQueryKey,
     queryFn: () => sdk.status(),
     staleTime: Infinity,
   });
+
+  function finishSetup() {
+    const newStatusData: StatusResponse = {
+      data: {
+        setup: true,
+        user: undefined,
+      },
+    };
+
+    queryClient.setQueryData(statusQueryKey, newStatusData);
+  }
 
   function authenticate(user: User) {
     const newStatusData: StatusResponse = {
@@ -40,7 +48,7 @@ export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
     queryClient.setQueryData(statusQueryKey, newStatusData);
   }
 
-  if (isLoading) {
+  if (!res) {
     return <div>Loading...</div>;
   }
 
@@ -48,13 +56,11 @@ export function StatusProvider(props: PropsWithChildren<StatusProviderProps>) {
     return <div>Something went wrong</div>;
   }
 
-  if (!res?.data?.setup) {
-    return <>{props.fallback}</>;
-  }
-
   return (
-    <StatusContext.Provider value={{ data: res.data, authenticate }}>
-      {props.children}
+    <StatusContext.Provider
+      value={{ data: res.data, authenticate, finishSetup }}
+    >
+      {res.data.setup ? props.children : props.fallback}
     </StatusContext.Provider>
   );
 }
