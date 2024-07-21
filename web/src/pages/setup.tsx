@@ -93,7 +93,7 @@ export function SetupPage() {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input autoComplete="username" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -107,7 +107,7 @@ export function SetupPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" {...field} />
+                    <Input type="email" autoComplete="username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -18,6 +18,7 @@ import (
 )
 
 const TokenHeader = "OPENTICKET-TOKEN"
+const TokenCookie = "openticket-token"
 const userCtxKey = "user"
 
 func (server *Server) AuthRequired(c *gin.Context) {
@@ -48,6 +49,12 @@ func (server *Server) AuthUserFromContext(c *gin.Context) sqlc.User {
 
 func (server *Server) AuthUser(c *gin.Context) (user *sqlc.User, err error) {
 	sessionToken := c.Request.Header.Get(TokenHeader)
+	if sessionToken == "" {
+		sessionToken, err = c.Cookie(TokenCookie)
+		if err != nil {
+			return nil, nil
+		}
+	}
 	sum := sha256.Sum256([]byte(sessionToken))
 	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
 	session, err := server.db.Queries().GetSessionByTokenHash(c, tokenHash)
@@ -110,11 +117,13 @@ func (server *Server) login(c *gin.Context) {
 	}
 	sum := sha256.Sum256([]byte(token))
 	tokenHash := base64.URLEncoding.EncodeToString(sum[:])
+	maxAge := time.Hour * 24 * 30
+	tokenExpiration := time.Now().Add(maxAge)
 	_, err = server.db.Queries().CreateSession(ctx, sqlc.CreateSessionParams{
 		UserID:    user.ID,
 		TokenHash: tokenHash,
 		ExpiresAt: pgtype.Timestamp{
-			Time:  time.Now().AddDate(0, 0, 30).UTC(),
+			Time:  tokenExpiration.UTC(),
 			Valid: true,
 		},
 	})
@@ -123,6 +132,7 @@ func (server *Server) login(c *gin.Context) {
 		return
 	}
 
+	c.SetCookie(TokenCookie, token, int(maxAge), "/", "", false, true)
 	c.JSON(200, LoginResponse{
 		Data: LoginData{
 			User: User{

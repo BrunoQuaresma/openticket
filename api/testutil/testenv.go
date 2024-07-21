@@ -3,6 +3,7 @@ package testutil
 import (
 	"io"
 	"net"
+	"net/http"
 	"testing"
 
 	"github.com/BrunoQuaresma/openticket/api"
@@ -65,8 +66,9 @@ func (tEnv *TestEnv) Server() *api.Server {
 }
 
 type setup struct {
-	req api.SetupRequest
-	res api.SetupResponse
+	req     api.SetupRequest
+	res     api.SetupResponse
+	httpRes *http.Response
 }
 
 func (i setup) Req() api.SetupRequest {
@@ -86,14 +88,15 @@ func (tEnv *TestEnv) Setup() setup {
 	}
 	var res api.SetupResponse
 	sdk := tEnv.SDK()
-	_, err := sdk.Setup(req, &res)
+	httpRes, err := sdk.Setup(req, &res)
 	if err != nil {
 		tEnv.t.Fatal("error making setup request: " + err.Error())
 	}
 
 	return setup{
-		req: req,
-		res: res,
+		req:     req,
+		res:     res,
+		httpRes: httpRes,
 	}
 }
 

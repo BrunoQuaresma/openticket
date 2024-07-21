@@ -80,7 +80,12 @@ export function LoginPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" autoFocus {...field} />
+                    <Input
+                      type="email"
+                      autoFocus
+                      autoComplete="username"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -94,7 +99,11 @@ export function LoginPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input
+                      type="password"
+                      autoComplete="current-password"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

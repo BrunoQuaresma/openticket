@@ -46,6 +46,20 @@ func TestAPI_AuthRequired(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "expect unauthorized status code")
 	})
 
+	t.Run("unauthorized: invalid cookie", func(t *testing.T) {
+		t.Parallel()
+
+		var client http.Client
+		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
+		require.NoError(t, err, "error creating request")
+		req.Header.Set(api.TokenHeader, "invalid-token")
+		req.AddCookie(&http.Cookie{Name: api.TokenCookie, Value: "invalid-token"})
+
+		res, err := client.Do(req)
+		require.NoError(t, err, "error making admin test request")
+		require.Equal(t, http.StatusUnauthorized, res.StatusCode, "expect unauthorized status code")
+	})
+
 	t.Run("authorized: valid token", func(t *testing.T) {
 		t.Parallel()
 
@@ -61,6 +75,26 @@ func TestAPI_AuthRequired(t *testing.T) {
 		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
 		require.NoError(t, err, "error creating request")
 		req.Header.Set(api.TokenHeader, loginRes.Data.Token)
+		res, err := client.Do(req)
+		require.NoError(t, err, "error making admin test request")
+		require.Equal(t, http.StatusOK, res.StatusCode, "expect ok status code")
+	})
+
+	t.Run("authorized: valid cookie", func(t *testing.T) {
+		t.Parallel()
+
+		sdk := tEnv.SDK()
+		var loginRes api.LoginResponse
+		_, err := sdk.Login(api.LoginRequest(api.LoginRequest{
+			Email:    setup.Req().Email,
+			Password: setup.Req().Password,
+		}), &loginRes)
+		require.NoError(t, err, "error making login request")
+
+		var client http.Client
+		req, err := http.NewRequest("GET", tEnv.Server().URL()+"/admin/test", nil)
+		require.NoError(t, err, "error creating request")
+		req.AddCookie(&http.Cookie{Name: api.TokenCookie, Value: loginRes.Data.Token})
 		res, err := client.Do(req)
 		require.NoError(t, err, "error making admin test request")
 		require.Equal(t, http.StatusOK, res.StatusCode, "expect ok status code")
@@ -87,6 +121,15 @@ func TestAPI_Login(t *testing.T) {
 		require.NoError(t, err, "error making login request")
 		require.Equal(t, 200, httpRes.StatusCode, "unexpected status code")
 		require.NotEmpty(t, res.Data.Token, "session token should not be empty")
+
+		var tokenCookie *http.Cookie
+		for _, cookie := range httpRes.Cookies() {
+			if cookie.Name == api.TokenCookie {
+				tokenCookie = cookie
+				break
+			}
+		}
+		require.NotNil(t, tokenCookie, "token cookie not found")
 	})
 
 	t.Run("error: wrong email", func(t *testing.T) {
