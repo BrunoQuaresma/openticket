@@ -1,6 +1,7 @@
 import { RouteObject } from "react-router-dom";
 import { Dashboard } from "./layouts/dashboard";
 import { LoginPage } from "./pages/login";
+import { IndexDashboardPage } from "./pages/dashboard";
 
 export const routes: RouteObject[] = [
   {
@@ -13,7 +14,7 @@ export const routes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <div>app page</div>,
+        element: <IndexDashboardPage />,
       },
     ],
   },

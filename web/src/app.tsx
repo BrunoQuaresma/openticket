@@ -4,6 +4,7 @@ import { Toaster } from "./ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusProvider } from "./status";
 import { routes } from "./routes";
+import { HelmetProvider } from "react-helmet-async";
 
 type Router = ReturnType<typeof createBrowserRouter>;
 
@@ -20,12 +21,14 @@ export function App({
   router = defaultRouter,
 }: AppProps) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <StatusProvider fallback={<SetupPage />}>
-        <RouterProvider router={router} />
-      </StatusProvider>
-      <Toaster />
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <StatusProvider fallback={<SetupPage />}>
+          <RouterProvider router={router} />
+        </StatusProvider>
+        <Toaster />
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 }
 
