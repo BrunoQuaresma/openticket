@@ -1,5 +1,5 @@
 import { RouteObject } from "react-router-dom";
-import { Dashboard } from "./layouts/dashboard";
+import { Dashboard } from "./pages/dashboard/layout";
 import { LoginPage } from "./pages/login";
 import { IndexDashboardPage } from "./pages/dashboard";
 

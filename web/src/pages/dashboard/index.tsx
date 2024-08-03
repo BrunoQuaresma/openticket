@@ -9,7 +9,7 @@ import {
   PanelHeaderActions,
   Panels,
 } from "@/ui/panels";
-import { Maximize2Icon, MinusIcon, XIcon } from "lucide-react";
+import { Maximize2Icon, MinusIcon, PlusIcon, XIcon } from "lucide-react";
 import { usePanels, UsePanelsResult } from "./use-panels";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { OpenticketSdk } from "@/sdk";
@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/ui/table";
+import { Badge } from "@/ui/badge";
 
 const TICKETS_QUERY_KEY = ["tickets"];
 
@@ -43,6 +44,24 @@ export function IndexDashboardPage() {
       <Helmet>
         <title>Openticket - Tickets</title>
       </Helmet>
+
+      <header>
+        <div className="px-6 border-b py-4 flex items-center justify-between">
+          <h1 className="text-lg font-bold">Tickets</h1>
+          <div>
+            <Button
+              onClick={() => {
+                const id = "new-ticket";
+                panels[id] ? openPanel(id) : createPanel(id);
+              }}
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Open a ticket
+            </Button>
+          </div>
+        </div>
+      </header>
+
       {!tickets ? (
         <div className="w-full h-full flex items-center justify-center text-center">
           <span>Loading tickets...</span>
@@ -51,19 +70,29 @@ export function IndexDashboardPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">Invoice</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="pl-6">Title</TableHead>
+              <TableHead>Labels</TableHead>
+              <TableHead>Created By</TableHead>
+              <TableHead className="pr-6">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell className="font-medium">INV001</TableCell>
-              <TableCell>Paid</TableCell>
-              <TableCell>Credit Card</TableCell>
-              <TableCell className="text-right">$250.00</TableCell>
-            </TableRow>
+            {tickets.map((t) => (
+              <TableRow key={t.id}>
+                <TableCell className="font-medium pl-6">{t.title}</TableCell>
+                <TableCell>
+                  {t.labels.length > 0 && (
+                    <div className="space-x-1">
+                      {t.labels.map((l) => (
+                        <Badge key={l}>{l}</Badge>
+                      ))}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>{t.created_by.name}</TableCell>
+                <TableCell className="capitalize pr-6">{t.status}</TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       ) : (
@@ -149,6 +178,7 @@ function TicketPanels(props: UsePanelsResult) {
                 title="Close"
                 onClick={() => {
                   closePanel(p.id);
+                  form.reset();
                 }}
               >
                 <XIcon className="w-3.5 h-3.5" />
@@ -162,6 +192,7 @@ function TicketPanels(props: UsePanelsResult) {
                 onSubmit={form.handleSubmit(async (values) => {
                   await createTicketMutation.mutateAsync(values);
                   closePanel(p.id);
+                  form.reset();
                 })}
               >
                 <fieldset

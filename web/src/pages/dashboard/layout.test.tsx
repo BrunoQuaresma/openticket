@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
-import { server } from "../test-utils";
+import { server } from "../../test-utils";
 import { http, HttpResponse } from "msw";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { Dashboard } from "./dashboard";
+import { Dashboard } from "./layout";
 import { render, waitFor } from "@testing-library/react";
-import { StatusProvider } from "../status";
+import { StatusProvider } from "../../status";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusResponse } from "@/sdk/types.gen";
 
