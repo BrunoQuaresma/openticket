@@ -17,6 +17,14 @@ import { Form, FormField } from "@/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/ui/table";
 
 const TICKETS_QUERY_KEY = ["tickets"];
 
@@ -40,7 +48,24 @@ export function IndexDashboardPage() {
           <span>Loading tickets...</span>
         </div>
       ) : tickets.length > 0 ? (
-        <span>Tickets</span>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Invoice</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Method</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="font-medium">INV001</TableCell>
+              <TableCell>Paid</TableCell>
+              <TableCell>Credit Card</TableCell>
+              <TableCell className="text-right">$250.00</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       ) : (
         <div className="w-full h-full flex items-center justify-center text-center">
           <div className="space-y-4">

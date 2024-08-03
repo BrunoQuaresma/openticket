@@ -23,13 +23,12 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-  
     /** ShadCN **/
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
     },
-
+    
     /** Tests **/
     "types": ["@testing-library/jest-dom"]
   },
