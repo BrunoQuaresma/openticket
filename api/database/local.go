@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 
 	embeddedpostgres "github.com/fergusstrange/embedded-postgres"
 	migrate "github.com/golang-migrate/migrate/v4"
@@ -49,13 +50,19 @@ func (testDB *LocalDatabase) URL() string {
 	return "postgresql://" + testDB.username + ":" + testDB.password + "@localhost:" + fmt.Sprint(testDB.port) + "/" + testDB.database + "?sslmode=disable"
 }
 
-func NewLocalDatabase(port uint32, runtimePath string, logger io.Writer) *LocalDatabase {
+func NewLocalDatabase(port uint32, path string, persist bool, logger io.Writer) *LocalDatabase {
 	testDB := &LocalDatabase{
 		username: "postgres",
 		password: "postgres",
 		database: "postgres",
 		port:     port,
 		logger:   logger,
+	}
+
+	runtimePath := filepath.Join(path, "tmp")
+	dataPath := runtimePath
+	if persist {
+		dataPath = filepath.Join(path, "data")
 	}
 
 	testDB.pg = embeddedpostgres.NewDatabase(
@@ -65,7 +72,8 @@ func NewLocalDatabase(port uint32, runtimePath string, logger io.Writer) *LocalD
 			Password(testDB.password).
 			Database(testDB.database).
 			Logger(testDB.logger).
-			RuntimePath(runtimePath),
+			RuntimePath(runtimePath).
+			DataPath(dataPath),
 	)
 
 	return testDB
