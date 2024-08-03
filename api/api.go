@@ -83,6 +83,7 @@ func NewServer(port int, database *database.Connection, mode string) *Server {
 			auth.PATCH("/tickets/:ticketId", server.patchTicket)
 			auth.PATCH("/tickets/:ticketId/status", server.patchTicketStatus)
 
+			auth.GET("/tickets/:ticketId/comments", server.comments)
 			auth.POST("/tickets/:ticketId/comments", server.createComment)
 			auth.DELETE("/tickets/:ticketId/comments/:commentId", server.deleteComment)
 			auth.PATCH("/tickets/:ticketId/comments/:commentId", server.patchComment)

@@ -34,7 +34,6 @@ func TestCreateTicket_Success(t *testing.T) {
 
 	require.NotEmpty(t, res.Data.ID)
 	require.Equal(t, req.Title, res.Data.Title)
-	require.Equal(t, req.Description, res.Data.Description)
 	require.Equal(t, req.Labels, res.Data.Labels)
 	require.Equal(t, setup.Res().Data.ID, res.Data.CreatedBy.ID)
 }
@@ -287,7 +286,6 @@ func TestPatchTicket_Success(t *testing.T) {
 	require.Equal(t, http.StatusOK, httpRes.StatusCode)
 
 	require.Equal(t, req.Title, patchRes.Data.Title)
-	require.Equal(t, req.Description, patchRes.Data.Description)
 	require.Equal(t, req.Labels, patchRes.Data.Labels)
 }
 
@@ -315,7 +313,6 @@ func TestTicket_Success(t *testing.T) {
 
 	require.Equal(t, res.Data.ID, ticketRes.Data.ID)
 	require.Equal(t, res.Data.Title, ticketRes.Data.Title)
-	require.Equal(t, res.Data.Description, ticketRes.Data.Description)
 	require.Equal(t, res.Data.Labels, ticketRes.Data.Labels)
 	require.Equal(t, setup.Res().Data.ID, ticketRes.Data.CreatedBy.ID)
 }

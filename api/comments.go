@@ -24,6 +24,41 @@ type Comment struct {
 	CreatedBy User   `json:"created_by"`
 }
 
+type CommentsResponse = Response[[]Comment]
+
+func (server *Server) comments(c *gin.Context) {
+	ticketId, err := strconv.ParseUint(c.Param("ticketId"), 10, 32)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, Response[any]{Message: "ticket not found"})
+		return
+	}
+
+	comments, err := server.db.Queries().GetCommentsByTicketID(c, int32(ticketId))
+	if err != nil && err != pgx.ErrNoRows {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Response[any]{Message: "failed to get comments"})
+		return
+	}
+
+	var commentsResponse []Comment
+	for _, comment := range comments {
+		commentsResponse = append(commentsResponse, Comment{
+			ID:        comment.ID,
+			Content:   comment.Content,
+			CreatedAt: comment.CreatedAt.Time.UTC().String(),
+			ReplyTo:   comment.ReplyTo.Int32,
+			CreatedBy: User{
+				ID:       comment.UserID,
+				Username: comment.User.Username,
+				Name:     comment.User.Name,
+				Email:    comment.User.Email,
+				Role:     string(comment.User.Role),
+			},
+		})
+	}
+
+	c.JSON(http.StatusOK, CommentsResponse{Data: commentsResponse})
+}
+
 type CreateCommentResponse = Response[Comment]
 
 func (server *Server) createComment(c *gin.Context) {

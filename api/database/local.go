@@ -59,6 +59,7 @@ func NewLocalDatabase(port uint32, path string, persist bool, logger io.Writer) 
 		logger:   logger,
 	}
 
+	os.MkdirAll(path, os.ModePerm)
 	runtimePath := filepath.Join(path, "tmp")
 	dataPath := runtimePath
 	if persist {

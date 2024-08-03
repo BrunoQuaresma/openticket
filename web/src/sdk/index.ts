@@ -9,6 +9,10 @@ import {
   CreateTicketRequest,
   CreateTicketResponse,
   TicketsResponse,
+  TicketResponse,
+  CreateCommentResponse,
+  CreateCommentRequest,
+  CommentsResponse,
 } from "./types.gen";
 
 type ErrorResponse = {
@@ -51,6 +55,24 @@ export class OpenticketSdk {
     return this.client
       .get<SuccessResponse<TicketsResponse>>("/tickets")
       .then((res) => res.data);
+  };
+
+  ticket = async (id: number) => {
+    return this.client
+      .get<SuccessResponse<TicketResponse>>(`/tickets/${id}`)
+      .then((res) => res.data.data);
+  };
+
+  createComment = async (ticketId: number, req: CreateCommentRequest) => {
+    return this.client
+      .post<CreateCommentResponse>(`/tickets/${ticketId}/comments`, req)
+      .then((res) => res.data.data);
+  };
+
+  comments = async (ticketId: number) => {
+    return this.client
+      .get<SuccessResponse<CommentsResponse>>(`/tickets/${ticketId}/comments`)
+      .then((res) => res.data.data);
   };
 
   static isErrorResponse(res: unknown): res is ErrorResponse {

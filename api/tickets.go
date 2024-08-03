@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	sqlc "github.com/BrunoQuaresma/openticket/api/database/sqlc"
 	"github.com/gin-gonic/gin"
@@ -18,12 +19,12 @@ type CreateTicketRequest struct {
 }
 
 type Ticket struct {
-	ID          int32    `json:"id"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Status      string   `json:"status"`
-	Labels      []string `json:"labels"`
-	CreatedBy   User     `json:"created_by"`
+	ID        int32    `json:"id"`
+	Title     string   `json:"title"`
+	Status    string   `json:"status"`
+	Labels    []string `json:"labels"`
+	CreatedBy User     `json:"created_by"`
+	CreatedAt string   `json:"created_at"`
 }
 
 type CreateTicketResponse = Response[Ticket]
@@ -40,9 +41,17 @@ func (server *Server) createTicket(c *gin.Context) {
 	)
 	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
 		ticket, err = qtx.CreateTicket(ctx, sqlc.CreateTicketParams{
-			Title:       req.Title,
-			Description: req.Description,
-			CreatedBy:   user.ID,
+			Title:     req.Title,
+			CreatedBy: user.ID,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = qtx.CreateComment(ctx, sqlc.CreateCommentParams{
+			Content:  req.Description,
+			TicketID: ticket.ID,
+			UserID:   user.ID,
 		})
 		if err != nil {
 			return err
@@ -83,11 +92,11 @@ func (server *Server) createTicket(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, CreateTicketResponse{
 		Data: Ticket{
-			ID:          ticket.ID,
-			Title:       ticket.Title,
-			Description: ticket.Description,
-			Status:      string(ticket.Status),
-			Labels:      req.Labels,
+			ID:        ticket.ID,
+			Title:     ticket.Title,
+			Status:    string(ticket.Status),
+			Labels:    req.Labels,
+			CreatedAt: ticket.CreatedAt.Time.Format(time.RFC3339),
 			CreatedBy: User{
 				ID:       user.ID,
 				Name:     user.Name,
@@ -162,11 +171,11 @@ func (server *Server) tickets(c *gin.Context) {
 	tickets := make([]Ticket, len(ticketRows))
 	for i, ticket := range ticketRows {
 		tickets[i] = Ticket{
-			ID:          ticket.ID,
-			Title:       ticket.Title,
-			Description: ticket.Description,
-			Status:      string(ticket.Status),
-			Labels:      ticket.Labels,
+			ID:        ticket.ID,
+			Title:     ticket.Title,
+			Status:    string(ticket.Status),
+			Labels:    ticket.Labels,
+			CreatedAt: ticket.CreatedAt.Time.Format(time.RFC3339),
 			CreatedBy: User{
 				ID:       ticket.User.ID,
 				Name:     ticket.User.Name,
@@ -259,9 +268,6 @@ func (server *Server) patchTicket(c *gin.Context) {
 		if req.Title != "" {
 			ticket.Title = req.Title
 		}
-		if req.Description != "" {
-			ticket.Description = req.Description
-		}
 
 		if len(req.Labels) > 0 {
 			for _, labelName := range req.Labels {
@@ -289,9 +295,8 @@ func (server *Server) patchTicket(c *gin.Context) {
 		}
 
 		updatedTicket, err = qtx.UpdateTicketByID(ctx, sqlc.UpdateTicketByIDParams{
-			ID:          ticket.ID,
-			Title:       ticket.Title,
-			Description: ticket.Description,
+			ID:    ticket.ID,
+			Title: ticket.Title,
 		})
 		if err != nil {
 			return err
@@ -305,11 +310,11 @@ func (server *Server) patchTicket(c *gin.Context) {
 	case nil:
 		c.JSON(http.StatusOK, PatchTicketResponse{
 			Data: Ticket{
-				ID:          updatedTicket.ID,
-				Title:       updatedTicket.Title,
-				Description: updatedTicket.Description,
-				Status:      string(updatedTicket.Status),
-				Labels:      req.Labels,
+				ID:        updatedTicket.ID,
+				Title:     updatedTicket.Title,
+				Status:    string(updatedTicket.Status),
+				Labels:    req.Labels,
+				CreatedAt: updatedTicket.CreatedAt.Time.Format(time.RFC3339),
 				CreatedBy: User{
 					ID:       createdBy.ID,
 					Name:     createdBy.Name,
@@ -352,11 +357,11 @@ func (server *Server) ticket(c *gin.Context) {
 	case nil:
 		c.JSON(http.StatusOK, PatchTicketResponse{
 			Data: Ticket{
-				ID:          ticketRow.ID,
-				Title:       ticketRow.Title,
-				Description: ticketRow.Description,
-				Status:      string(ticketRow.Status),
-				Labels:      ticketRow.Labels,
+				ID:        ticketRow.ID,
+				Title:     ticketRow.Title,
+				Status:    string(ticketRow.Status),
+				Labels:    ticketRow.Labels,
+				CreatedAt: ticketRow.CreatedAt.Time.Format(time.RFC3339),
 				CreatedBy: User{
 					ID:       ticketRow.User.ID,
 					Name:     ticketRow.User.Name,
@@ -408,11 +413,11 @@ func (server *Server) patchTicketStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, PatchTicketStatusResponse{
 		Data: Ticket{
-			ID:          updatedTicket.ID,
-			Title:       updatedTicket.Title,
-			Description: updatedTicket.Description,
-			Labels:      updatedTicket.Labels,
-			Status:      string(updatedTicket.Status),
+			ID:        updatedTicket.ID,
+			Title:     updatedTicket.Title,
+			Labels:    updatedTicket.Labels,
+			Status:    string(updatedTicket.Status),
+			CreatedAt: updatedTicket.CreatedAt.Time.Format(time.RFC3339),
 			CreatedBy: User{
 				ID:       updatedTicket.User.ID,
 				Name:     updatedTicket.User.Name,

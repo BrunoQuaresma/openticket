@@ -1,0 +1,134 @@
+import { humanTimeAgo } from "@/pages/utils/time";
+import { useComments, useCreateComment } from "@/queries/comments";
+import { useTicket } from "@/queries/tickets";
+import { Button } from "@/ui/button";
+import { Card, CardContent, CardHeader } from "@/ui/card";
+import { Form, FormField } from "@/ui/form";
+import { Skeleton } from "@/ui/skeleton";
+import { Textarea } from "@/ui/textarea";
+import { UserAvatar } from "@/ui/user-avatar";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Helmet } from "react-helmet-async";
+import { useForm } from "react-hook-form";
+import { useParams } from "react-router-dom";
+import { z } from "zod";
+
+export function TicketPage() {
+  const params = useParams() as { ticketId: string };
+  const ticketId = parseInt(params.ticketId, 10);
+  const ticketQuery = useTicket(ticketId);
+
+  return (
+    <>
+      <Helmet>
+        <title>{ticketQuery.data?.title ?? "Loading..."} - Openticket</title>
+      </Helmet>
+
+      <header className="border-b">
+        <div className="px-6 py-6 flex items-center justify-between max-w-screen-xl mx-auto">
+          <hgroup className="space-y-1">
+            {ticketQuery.data ? (
+              <>
+                <h1 className="text-2xl font-bold">{ticketQuery.data.title}</h1>
+                <span className="text-sm text-muted-foreground">
+                  Created by {ticketQuery.data.created_by.name}
+                </span>
+              </>
+            ) : (
+              <>
+                <Skeleton className="h-[32px] w-[240px] rounded" />
+                <Skeleton className="h-[16.5px] w-[160px] rounded" />
+              </>
+            )}
+          </hgroup>
+        </div>
+      </header>
+
+      <div className="px-6 py-6 max-w-screen-xl mx-auto">
+        <div className="space-y-4">
+          <Comments ticketId={ticketId} />
+          <CommentForm ticketId={ticketId} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+type CommentsProps = { ticketId: number };
+
+function Comments({ ticketId }: CommentsProps) {
+  const commentsQuery = useComments(ticketId);
+
+  if (!commentsQuery.data) {
+    return "Loading comments....";
+  }
+
+  return (
+    <div className="space-y-4">
+      {commentsQuery.data.map((c) => (
+        <Card key={c.id}>
+          <CardHeader>
+            <div className="flex gap-1">
+              <div className="flex items-center gap-2 text-sm">
+                <UserAvatar name={c.created_by.name} />
+                <span className="font-medium">{c.created_by.name}</span>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                commented {humanTimeAgo(new Date(c.created_at))}
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">{c.content}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+const commentFormSchema = z.object({
+  content: z.string(),
+});
+
+type CommentFormProps = { ticketId: number };
+
+function CommentForm({ ticketId }: CommentFormProps) {
+  const createCommentMutation = useCreateComment(ticketId);
+  const form = useForm({
+    resolver: zodResolver(commentFormSchema),
+    defaultValues: { content: "" },
+  });
+
+  return (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(async (v) => {
+          await createCommentMutation.mutateAsync(v);
+          form.reset();
+        })}
+      >
+        <fieldset
+          className="space-y-2"
+          disabled={createCommentMutation.isPending}
+        >
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                rows={5}
+                aria-label="Comment"
+                placeholder="Type your comment here..."
+              />
+            )}
+          />
+          <div className="flex justify-end">
+            <Button type="submit">Comment</Button>
+          </div>
+        </fieldset>
+      </form>
+    </Form>
+  );
+}

@@ -11,8 +11,6 @@ import {
 } from "@/ui/panels";
 import { Maximize2Icon, MinusIcon, PlusIcon, XIcon } from "lucide-react";
 import { usePanels, UsePanelsResult } from "./use-panels";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { OpenticketSdk } from "@/sdk";
 import { Form, FormField } from "@/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -26,40 +24,35 @@ import {
   TableRow,
 } from "@/ui/table";
 import { Badge } from "@/ui/badge";
-
-const TICKETS_QUERY_KEY = ["tickets"];
+import { Link } from "react-router-dom";
+import { useCreateTicket, useTickets } from "@/queries/tickets";
+import { UserAvatar } from "@/ui/user-avatar";
 
 export function IndexDashboardPage() {
   const usePanelsResult = usePanels();
   const { panels, openPanel, createPanel } = usePanelsResult;
-  const sdk = new OpenticketSdk();
-  const ticketsQuery = useQuery({
-    queryKey: TICKETS_QUERY_KEY,
-    queryFn: sdk.tickets,
-  });
+  const ticketsQuery = useTickets();
   const tickets = ticketsQuery.data?.data;
 
   return (
     <>
       <Helmet>
-        <title>Openticket - Tickets</title>
+        <title>Tickets - Openticket</title>
       </Helmet>
 
       <div className="h-full flex flex-col">
-        <header>
-          <div className="px-6 border-b py-4 flex items-center justify-between">
-            <h1 className="text-lg font-bold">Tickets</h1>
-            <div>
-              <Button
-                onClick={() => {
-                  const id = "new-ticket";
-                  panels[id] ? openPanel(id) : createPanel(id);
-                }}
-              >
-                <PlusIcon className="w-4 h-4 mr-2" />
-                Open a ticket
-              </Button>
-            </div>
+        <header className="px-6 border-b py-4 flex items-center justify-between">
+          <h1 className="text-lg font-bold">Tickets</h1>
+          <div>
+            <Button
+              onClick={() => {
+                const id = "new-ticket";
+                panels[id] ? openPanel(id) : createPanel(id);
+              }}
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Open a ticket
+            </Button>
           </div>
         </header>
 
@@ -81,7 +74,12 @@ export function IndexDashboardPage() {
               {tickets.map((t) => (
                 <TableRow key={t.id}>
                   <TableCell className="pl-6 space-x-2">
-                    <span className="font-medium">{t.title}</span>
+                    <Link
+                      to={`/tickets/${t.id}`}
+                      className="hover:text-blue-500 hover:underline underline-offset-2"
+                    >
+                      <span className="font-medium">{t.title}</span>
+                    </Link>
                     <span className="text-muted-foreground">#{t.id}</span>
                   </TableCell>
                   <TableCell>
@@ -97,7 +95,12 @@ export function IndexDashboardPage() {
                       <span className="text-muted-foreground">No labels</span>
                     )}
                   </TableCell>
-                  <TableCell>{t.created_by.name}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2 items-center">
+                      <UserAvatar name={t.created_by.name} />
+                      {t.created_by.name}
+                    </div>
+                  </TableCell>
                   <TableCell className="capitalize pr-6">
                     <Badge
                       variant="outline"
@@ -148,17 +151,7 @@ type CreateTicketFormValues = z.infer<typeof createTicketFormSchema>;
 
 function TicketPanels(props: UsePanelsResult) {
   const { panels, closePanel, minimizePanel, openPanel } = props;
-  const queryClient = useQueryClient();
-  const sdk = new OpenticketSdk();
-
-  const createTicketMutation = useMutation({
-    mutationFn: sdk.createTicket,
-    onSuccess: () => {
-      queryClient.refetchQueries({
-        queryKey: TICKETS_QUERY_KEY,
-      });
-    },
-  });
+  const createTicketMutation = useCreateTicket();
   const form = useForm<CreateTicketFormValues>({
     defaultValues: {
       title: "",
