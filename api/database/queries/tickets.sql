@@ -38,7 +38,10 @@ WHERE id = @id
 RETURNING *;
 
 -- name: GetTickets :many
-SELECT tickets.*, sqlc.embed(users), array_agg(coalesce(labels.name, ''))::text[] AS labels
+SELECT
+  tickets.*,
+  sqlc.embed(users),
+  array_remove(array_agg(labels.name), NULL)::text[] AS labels
 FROM tickets
 LEFT JOIN ticket_labels ON tickets.id = ticket_labels.ticket_id
 LEFT JOIN labels ON ticket_labels.label_id = labels.id

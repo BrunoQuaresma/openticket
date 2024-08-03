@@ -45,91 +45,95 @@ export function IndexDashboardPage() {
         <title>Openticket - Tickets</title>
       </Helmet>
 
-      <header>
-        <div className="px-6 border-b py-4 flex items-center justify-between">
-          <h1 className="text-lg font-bold">Tickets</h1>
-          <div>
-            <Button
-              onClick={() => {
-                const id = "new-ticket";
-                panels[id] ? openPanel(id) : createPanel(id);
-              }}
-            >
-              <PlusIcon className="w-4 h-4 mr-2" />
-              Open a ticket
-            </Button>
+      <div className="h-full flex flex-col">
+        <header>
+          <div className="px-6 border-b py-4 flex items-center justify-between">
+            <h1 className="text-lg font-bold">Tickets</h1>
+            <div>
+              <Button
+                onClick={() => {
+                  const id = "new-ticket";
+                  panels[id] ? openPanel(id) : createPanel(id);
+                }}
+              >
+                <PlusIcon className="w-4 h-4 mr-2" />
+                Open a ticket
+              </Button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {!tickets ? (
-        <div className="w-full h-full flex items-center justify-center text-center">
-          <span>Loading tickets...</span>
-        </div>
-      ) : tickets.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-6">Title</TableHead>
-              <TableHead>Labels</TableHead>
-              <TableHead>Created By</TableHead>
-              <TableHead className="pr-6">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tickets.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="pl-6 space-x-2">
-                  <span className="font-medium">{t.title}</span>
-                  <span className="text-muted-foreground">#{t.id}</span>
-                </TableCell>
-                <TableCell>
-                  {t.labels.length > 0 && (
-                    <div className="space-x-1">
-                      {t.labels.map((l) => (
-                        <Badge variant="outline" key={l}>
-                          {l}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>{t.created_by.name}</TableCell>
-                <TableCell className="capitalize pr-6">
-                  <Badge
-                    variant="outline"
-                    className="bg-emerald-50 border-emerald-300 text-emerald-900 rounded-full"
-                  >
-                    {t.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-center">
-          <div className="space-y-4">
-            <hgroup className="space-y-1">
-              <h3 className="text-2xl font-semibold tracking-tight">
-                No tickets open
-              </h3>
-              <p className="text-muted-foreground">
-                New open tickets will show up automatically
-              </p>
-            </hgroup>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const id = "new-ticket";
-                panels[id] ? openPanel(id) : createPanel(id);
-              }}
-            >
-              Open a ticket
-            </Button>
+        {!tickets ? (
+          <div className="w-full h-full flex items-center justify-center text-center">
+            <span>Loading tickets...</span>
           </div>
-        </div>
-      )}
+        ) : tickets.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-6">Title</TableHead>
+                <TableHead>Labels</TableHead>
+                <TableHead>Created By</TableHead>
+                <TableHead className="pr-6">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tickets.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="pl-6 space-x-2">
+                    <span className="font-medium">{t.title}</span>
+                    <span className="text-muted-foreground">#{t.id}</span>
+                  </TableCell>
+                  <TableCell>
+                    {t.labels.length > 0 ? (
+                      <div className="space-x-1">
+                        {t.labels.map((l) => (
+                          <Badge variant="outline" key={l}>
+                            {l}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">No labels</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{t.created_by.name}</TableCell>
+                  <TableCell className="capitalize pr-6">
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-50 border-emerald-300 text-emerald-900 rounded-full"
+                    >
+                      {t.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-center">
+            <div className="space-y-4">
+              <hgroup className="space-y-1">
+                <h3 className="text-2xl font-semibold tracking-tight">
+                  No tickets open
+                </h3>
+                <p className="text-muted-foreground">
+                  New open tickets will show up automatically
+                </p>
+              </hgroup>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const id = "new-ticket";
+                  panels[id] ? openPanel(id) : createPanel(id);
+                }}
+              >
+                Open a ticket
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
       <TicketPanels {...usePanelsResult} />
     </>
   );
