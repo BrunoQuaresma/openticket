@@ -79,18 +79,30 @@ export function IndexDashboardPage() {
           <TableBody>
             {tickets.map((t) => (
               <TableRow key={t.id}>
-                <TableCell className="font-medium pl-6">{t.title}</TableCell>
+                <TableCell className="pl-6 space-x-2">
+                  <span className="font-medium">{t.title}</span>
+                  <span className="text-muted-foreground">#{t.id}</span>
+                </TableCell>
                 <TableCell>
                   {t.labels.length > 0 && (
                     <div className="space-x-1">
                       {t.labels.map((l) => (
-                        <Badge key={l}>{l}</Badge>
+                        <Badge variant="outline" key={l}>
+                          {l}
+                        </Badge>
                       ))}
                     </div>
                   )}
                 </TableCell>
                 <TableCell>{t.created_by.name}</TableCell>
-                <TableCell className="capitalize pr-6">{t.status}</TableCell>
+                <TableCell className="capitalize pr-6">
+                  <Badge
+                    variant="outline"
+                    className="bg-emerald-50 border-emerald-300 text-emerald-900 rounded-full"
+                  >
+                    {t.status}
+                  </Badge>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
