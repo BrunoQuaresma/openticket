@@ -85,6 +85,47 @@ func TestTickets_Success(t *testing.T) {
 	require.Len(t, res.Data, numberOfTickets)
 }
 
+func TestTickets_NoLabels_Success(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	numberOfTickets := 5
+	for i := range numberOfTickets {
+		var res api.CreateTicketResponse
+		httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+			Title:       gofakeit.JobTitle(),
+			Description: gofakeit.HackerPhrase(),
+		}, &res)
+		require.NoError(t, err, "error on create ticket request")
+		require.Equal(t, http.StatusCreated, httpRes.StatusCode, "error creating ticket "+fmt.Sprint(i))
+	}
+
+	var res api.TicketsResponse
+	httpRes, err := sdk.Tickets(&res, nil)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+	require.Len(t, res.Data, numberOfTickets)
+}
+
+func TestTickets_Empty_Success(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	var res api.TicketsResponse
+	httpRes, err := sdk.Tickets(&res, nil)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+	require.Len(t, res.Data, 0)
+}
+
 func TestTickets_FilterByLabel(t *testing.T) {
 	t.Parallel()
 

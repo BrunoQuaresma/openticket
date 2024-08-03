@@ -38,13 +38,13 @@ func (server *Server) AuthRequired(c *gin.Context) {
 	c.Next()
 }
 
-func (server *Server) AuthUserFromContext(c *gin.Context) sqlc.User {
-	user, err := c.Get(userCtxKey)
-	if !err {
+func (server *Server) AuthUserFromContext(c *gin.Context) *sqlc.User {
+	user, exists := c.Get(userCtxKey)
+	if !exists {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("user not found in context. Ensure the AuthRequired middleware is used in the route calling this function"))
-		return sqlc.User{}
+		return &sqlc.User{}
 	}
-	return user.(sqlc.User)
+	return user.(*sqlc.User)
 }
 
 func (server *Server) AuthUser(c *gin.Context) (user *sqlc.User, err error) {

@@ -23,15 +23,8 @@ export function usePanels() {
 
   function openPanel(id: string) {
     setPanels((prev) => {
-      const next = Object.fromEntries(
-        Object.entries(prev).map(([key]) => [
-          key,
-          {
-            ...prev[key],
-            status: (key === id ? "open" : "minimized") as PanelStatus,
-          },
-        ])
-      );
+      const next = { ...prev };
+      next[id] = { ...prev[id], status: "open" };
       return next;
     });
   }

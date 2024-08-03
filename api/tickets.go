@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -134,51 +133,25 @@ func (server *Server) tickets(c *gin.Context) {
 		}
 	}
 
-	var ticketRows []sqlc.GetTicketsByIDsRow
-	err := server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, tx pgx.Tx) error {
-		baseSelect := "SELECT tickets.id FROM tickets " +
-			"JOIN ticket_labels ON tickets.id = ticket_labels.ticket_id " +
-			"JOIN labels ON ticket_labels.label_id = labels.id " +
-			"JOIN users ON tickets.created_by = users.id "
-		var selectQuery string
+	var (
+		title  string
+		labels []string
+	)
 
-		if len(tags) > 0 {
-			var selects []string
-			for _, tag := range tags {
-				filterQuery := baseSelect + "WHERE "
-				switch tag.Key {
-				case "title":
-					filterQuery += "tickets.title ILIKE '%" + strings.Join(tag.Values, "%' AND tickets.title ILIKE '%") + "%' "
-				case "label":
-					filterQuery += "labels.name IN ('" + strings.Join(tag.Values, "', '") + "') "
-				default:
-					return errors.New("invalid tag key: " + tag.Key)
-				}
-				selects = append(selects, filterQuery)
-				selectQuery = strings.Join(selects, "INTERSECT ") + ";"
+	if len(tags) > 0 {
+		for _, tag := range tags {
+			switch tag.Key {
+			case "title":
+				title = tag.Values[0]
+			case "label":
+				labels = tag.Values
 			}
-		} else {
-			selectQuery = baseSelect + ";"
 		}
+	}
 
-		rows, err := tx.Query(ctx, selectQuery)
-		if err != nil {
-			return err
-		}
-		defer rows.Close()
-		results, err := pgx.CollectRows(rows, pgx.RowToStructByName[struct{ ID int32 }])
-		if err != nil {
-			return err
-		}
-		ids := make([]int32, len(results))
-		for i, result := range results {
-			ids[i] = result.ID
-		}
-		ticketRows, err = qtx.GetTicketsByIDs(ctx, ids)
-		if err != nil {
-			return err
-		}
-		return nil
+	ticketRows, err := server.db.Queries().GetTickets(c, sqlc.GetTicketsParams{
+		Labels: labels,
+		Title:  title,
 	})
 
 	if err != nil {
@@ -203,6 +176,7 @@ func (server *Server) tickets(c *gin.Context) {
 			},
 		}
 	}
+
 	c.JSON(http.StatusOK, TicketsResponse{
 		Data: tickets,
 	})

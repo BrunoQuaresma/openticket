@@ -6,6 +6,9 @@ import {
   SetupResponse,
   StatusResponse,
   Response,
+  CreateTicketRequest,
+  CreateTicketResponse,
+  TicketsResponse,
 } from "./types.gen";
 
 type ErrorResponse = {
@@ -39,6 +42,16 @@ export class OpenticketSdk {
       .get<SuccessResponse<StatusResponse>>("/status")
       .then((res) => res.data);
   }
+
+  createTicket = async (req: CreateTicketRequest) => {
+    return this.post<CreateTicketResponse>("/tickets", req);
+  };
+
+  tickets = async () => {
+    return this.client
+      .get<SuccessResponse<TicketsResponse>>("/tickets")
+      .then((res) => res.data);
+  };
 
   static isErrorResponse(res: unknown): res is ErrorResponse {
     return typeof res === "object" && res !== null && "message" in res;

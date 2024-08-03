@@ -32,7 +32,7 @@ type ValidationError struct {
 }
 
 type Response[T any] struct {
-	Data    T                 `json:"data,omitempty"`
+	Data    T                 `json:"data"`
 	Errors  []ValidationError `json:"errors,omitempty"`
 	Message string            `json:"message,omitempty"`
 }
