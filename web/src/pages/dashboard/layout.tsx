@@ -19,7 +19,7 @@ export function Dashboard() {
 
         <div className="justify-self-end">
           <div className="flex items-center gap-2">
-            <UserAvatar name={data.user.name} />
+            <UserAvatar name={data.user.name} size="sm" />
             <span>{data.user.name}</span>
           </div>
         </div>

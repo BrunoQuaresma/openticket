@@ -66,22 +66,23 @@ function Comments({ ticketId }: CommentsProps) {
   return (
     <div className="space-y-4">
       {commentsQuery.data.map((c) => (
-        <Card key={c.id}>
-          <CardHeader>
-            <div className="flex gap-1">
-              <div className="flex items-center gap-2 text-sm">
-                <UserAvatar name={c.created_by.name} />
-                <span className="font-medium">{c.created_by.name}</span>
+        <div key={c.id} className="flex gap-4 w-full">
+          <UserAvatar name={c.created_by.name} />
+
+          <div className="flex-1 space-y-1 rounded-lg border p-4">
+            <header>
+              <div className="text-sm">
+                <span className="text-sm font-medium">{c.created_by.name}</span>{" "}
+                <span className="text-muted-foreground text-xs">
+                  commented {humanTimeAgo(new Date(c.created_at))}
+                </span>
               </div>
-              <span className="text-sm text-muted-foreground">
-                commented {humanTimeAgo(new Date(c.created_at))}
-              </span>
+            </header>
+            <div>
+              <p className="text-sm">{c.content}</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">{c.content}</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );
