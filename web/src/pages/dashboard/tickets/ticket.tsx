@@ -2,15 +2,15 @@ import { humanTimeAgo } from "@/pages/utils/time";
 import { useComments, useCreateComment } from "@/queries/comments";
 import { useTicket } from "@/queries/tickets";
 import { Button } from "@/ui/button";
-import { Card, CardContent, CardHeader } from "@/ui/card";
 import { Form, FormField } from "@/ui/form";
 import { Skeleton } from "@/ui/skeleton";
 import { Textarea } from "@/ui/textarea";
 import { UserAvatar } from "@/ui/user-avatar";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { PlusIcon } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
 
 export function TicketPage() {
@@ -41,6 +41,18 @@ export function TicketPage() {
               </>
             )}
           </hgroup>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm">
+              Edit
+            </Button>
+            <Button size="sm" asChild>
+              <Link to="/dashboard/tickets/new">
+                <PlusIcon className="w-3 h-3 mr-2" />
+                New ticket
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
