@@ -76,6 +76,9 @@ func NewServer(port int, database *database.Connection, mode string) *Server {
 			auth.DELETE("/users/:id", server.deleteUser)
 			auth.PATCH("/users/:id", server.patchUser)
 
+			auth.GET("/labels", server.labels)
+			auth.POST("/labels", server.createLabel)
+
 			auth.POST("/tickets", server.createTicket)
 			auth.GET("/tickets", server.tickets)
 			auth.GET("/tickets/:ticketId", server.ticket)

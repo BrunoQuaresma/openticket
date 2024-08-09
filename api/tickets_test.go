@@ -289,6 +289,39 @@ func TestPatchTicket_Success(t *testing.T) {
 	require.Equal(t, req.Labels, patchRes.Data.Labels)
 }
 
+func TestPatchTicket_RemoveLabels(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "bug"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "customer"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "login"}, nil)
+
+	var res api.CreateTicketResponse
+	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+		Title:       "User cannot login",
+		Description: "User cannot login to the system",
+		Labels:      []string{"bug", "customer", "login"},
+	}, &res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
+
+	req := api.PatchTicketRequest{
+		Labels: []string{"bug"},
+	}
+
+	var patchRes api.PatchTicketResponse
+	httpRes, err = sdk.PatchTicket(res.Data.ID, req, &patchRes)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+	require.Equal(t, req.Labels, patchRes.Data.Labels)
+}
+
 func TestTicket_Success(t *testing.T) {
 	t.Parallel()
 

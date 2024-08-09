@@ -27,6 +27,7 @@ import { Badge } from "@/ui/badge";
 import { Link } from "react-router-dom";
 import { useCreateTicket, useTickets } from "@/queries/tickets";
 import { UserAvatar } from "@/ui/user-avatar";
+import { TicketLabels } from "@/ui/ticket-labels";
 
 export function IndexDashboardPage() {
   const usePanelsResult = usePanels();
@@ -76,7 +77,7 @@ export function IndexDashboardPage() {
                   <TableCell className="pl-6 space-x-2">
                     <Link
                       to={`/tickets/${t.id}`}
-                      className="hover:text-blue-500 hover:underline underline-offset-2"
+                      className="hover:text-link hover:underline underline-offset-2"
                     >
                       <span className="font-medium">{t.title}</span>
                     </Link>
@@ -84,20 +85,14 @@ export function IndexDashboardPage() {
                   </TableCell>
                   <TableCell>
                     {t.labels.length > 0 ? (
-                      <div className="space-x-1">
-                        {t.labels.map((l) => (
-                          <Badge variant="outline" key={l}>
-                            {l}
-                          </Badge>
-                        ))}
-                      </div>
+                      <TicketLabels labels={t.labels} />
                     ) : (
                       <span className="text-muted-foreground">No labels</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2 items-center">
-                      <UserAvatar name={t.created_by.name} />
+                      <UserAvatar size="sm" name={t.created_by.name} />
                       {t.created_by.name}
                     </div>
                   </TableCell>

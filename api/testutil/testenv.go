@@ -26,7 +26,7 @@ func NewEnv(t *testing.T) TestEnv {
 	if err != nil {
 		t.Fatal("error getting free port for db: " + err.Error())
 	}
-	tEnv.localDatabase = database.NewLocalDatabase(uint32(dbPort), t.TempDir(), false, io.Discard)
+	tEnv.localDatabase = database.NewLocalDatabase(uint32(dbPort), t.TempDir(), io.Discard)
 	db, err := database.Connect(tEnv.localDatabase.URL())
 	if err != nil {
 		t.Fatal("error connecting to database: " + err.Error())

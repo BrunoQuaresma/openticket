@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -59,22 +60,9 @@ func (server *Server) createTicket(c *gin.Context) {
 
 		if len(req.Labels) > 0 {
 			for _, labelName := range req.Labels {
-				label, err := qtx.GetLabelByName(ctx, labelName)
-				if err == pgx.ErrNoRows {
-					label, err = qtx.CreateLabelIfNotExists(ctx, sqlc.CreateLabelIfNotExistsParams{
-						Name:      labelName,
-						CreatedBy: user.ID,
-					})
-					if err != nil {
-						return err
-					}
-				} else if err != nil {
-					return err
-				}
-
-				err = qtx.AssignLabelToTicketIfNotAssigned(ctx, sqlc.AssignLabelToTicketIfNotAssignedParams{
-					TicketID: ticket.ID,
-					Name:     label.Name,
+				err = qtx.AssignLabelToTicket(ctx, sqlc.AssignLabelToTicketParams{
+					TicketID:  ticket.ID,
+					LabelName: labelName,
 				})
 				if err != nil {
 					return err
@@ -252,7 +240,7 @@ func (server *Server) patchTicket(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	var (
-		updatedTicket sqlc.Ticket
+		updatedTicket sqlc.GetTicketByIDRow
 		createdBy     sqlc.User
 	)
 	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
@@ -269,35 +257,49 @@ func (server *Server) patchTicket(c *gin.Context) {
 			ticket.Title = req.Title
 		}
 
-		if len(req.Labels) > 0 {
-			for _, labelName := range req.Labels {
-				label, err := qtx.GetLabelByName(ctx, labelName)
-				if err == pgx.ErrNoRows {
-					label, err = qtx.CreateLabelIfNotExists(ctx, sqlc.CreateLabelIfNotExistsParams{
-						Name:      labelName,
-						CreatedBy: user.ID,
-					})
-					if err != nil {
-						return err
-					}
-				} else if err != nil {
-					return err
-				}
-
-				err = qtx.AssignLabelToTicketIfNotAssigned(ctx, sqlc.AssignLabelToTicketIfNotAssignedParams{
-					TicketID: ticket.ID,
-					Name:     label.Name,
-				})
-				if err != nil {
-					return err
-				}
+		var labelsToUnassign []string
+		for _, oldLabel := range ticket.Labels {
+			if !slices.Contains(req.Labels, oldLabel) {
+				labelsToUnassign = append(labelsToUnassign, oldLabel)
 			}
 		}
 
-		updatedTicket, err = qtx.UpdateTicketByID(ctx, sqlc.UpdateTicketByIDParams{
+		var labelsToAssign []string
+		for _, newLabel := range req.Labels {
+			if !slices.Contains(ticket.Labels, newLabel) {
+				labelsToAssign = append(labelsToAssign, newLabel)
+			}
+		}
+
+		for _, labelName := range labelsToUnassign {
+			err := qtx.UnassignLabelFromTicket(ctx, sqlc.UnassignLabelFromTicketParams{
+				TicketID:  ticket.ID,
+				LabelName: labelName,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, labelName := range labelsToAssign {
+			err := qtx.AssignLabelToTicket(ctx, sqlc.AssignLabelToTicketParams{
+				TicketID:  ticket.ID,
+				LabelName: labelName,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = qtx.UpdateTicketByID(ctx, sqlc.UpdateTicketByIDParams{
 			ID:    ticket.ID,
 			Title: ticket.Title,
 		})
+		if err != nil {
+			return err
+		}
+
+		updatedTicket, err = qtx.GetTicketByID(ctx, ticket.ID)
 		if err != nil {
 			return err
 		}
@@ -313,7 +315,7 @@ func (server *Server) patchTicket(c *gin.Context) {
 				ID:        updatedTicket.ID,
 				Title:     updatedTicket.Title,
 				Status:    string(updatedTicket.Status),
-				Labels:    req.Labels,
+				Labels:    updatedTicket.Labels,
 				CreatedAt: updatedTicket.CreatedAt.Time.Format(time.RFC3339),
 				CreatedBy: User{
 					ID:       createdBy.ID,

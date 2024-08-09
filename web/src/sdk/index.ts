@@ -13,6 +13,10 @@ import {
   CreateCommentResponse,
   CreateCommentRequest,
   CommentsResponse,
+  LabelsResponse,
+  CreateLabelRequest,
+  CreateLabelResponse,
+  PatchTicketRequest,
 } from "./types.gen";
 
 type ErrorResponse = {
@@ -63,6 +67,12 @@ export class OpenticketSdk {
       .then((res) => res.data.data);
   };
 
+  patchTicket = async (id: number, req: PatchTicketRequest) => {
+    return this.client
+      .patch<SuccessResponse<TicketResponse>>(`/tickets/${id}`, req)
+      .then((res) => res.data.data);
+  };
+
   createComment = async (ticketId: number, req: CreateCommentRequest) => {
     return this.client
       .post<CreateCommentResponse>(`/tickets/${ticketId}/comments`, req)
@@ -72,6 +82,22 @@ export class OpenticketSdk {
   comments = async (ticketId: number) => {
     return this.client
       .get<SuccessResponse<CommentsResponse>>(`/tickets/${ticketId}/comments`)
+      .then((res) => res.data.data);
+  };
+
+  labels = async (name?: string) => {
+    const querySearch = new URLSearchParams();
+    if (name) {
+      querySearch.append("name", name);
+    }
+    return this.client
+      .get<SuccessResponse<LabelsResponse>>(`/labels?${querySearch.toString()}`)
+      .then((res) => res.data.data);
+  };
+
+  createLabel = async (req: CreateLabelRequest) => {
+    return this.client
+      .post<CreateLabelResponse>(`/labels`, req)
       .then((res) => res.data.data);
   };
 

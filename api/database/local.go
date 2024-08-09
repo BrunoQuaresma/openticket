@@ -50,7 +50,7 @@ func (testDB *LocalDatabase) URL() string {
 	return "postgresql://" + testDB.username + ":" + testDB.password + "@localhost:" + fmt.Sprint(testDB.port) + "/" + testDB.database + "?sslmode=disable"
 }
 
-func NewLocalDatabase(port uint32, path string, persist bool, logger io.Writer) *LocalDatabase {
+func NewLocalDatabase(port uint32, path string, logger io.Writer) *LocalDatabase {
 	testDB := &LocalDatabase{
 		username: "postgres",
 		password: "postgres",
@@ -62,9 +62,7 @@ func NewLocalDatabase(port uint32, path string, persist bool, logger io.Writer) 
 	os.MkdirAll(path, os.ModePerm)
 	runtimePath := filepath.Join(path, "tmp")
 	dataPath := runtimePath
-	if persist {
-		dataPath = filepath.Join(path, "data")
-	}
+	dataPath = filepath.Join(path, "data")
 
 	testDB.pg = embeddedpostgres.NewDatabase(
 		embeddedpostgres.DefaultConfig().
