@@ -1,13 +1,13 @@
 -- name: AssignLabelToTicket :exec
-WITH label AS (
+INSERT INTO ticket_labels (ticket_id, label_id)
+VALUES (
+  @ticket_id,
+  (
     SELECT id
     FROM labels
     WHERE name = @label_name
-)
-INSERT INTO ticket_labels (ticket_id, label_id)
-SELECT @ticket_id, id
-FROM label
-RETURNING *;
+  )
+);
 
 -- name: UnassignLabelFromTicket :exec
 DELETE FROM ticket_labels
@@ -25,3 +25,4 @@ SELECT * FROM labels;
 INSERT INTO labels (name, created_by)
 VALUES ($1, $2)
 RETURNING *;
+

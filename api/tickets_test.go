@@ -21,10 +21,17 @@ func TestCreateTicket_Success(t *testing.T) {
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
+	_, userA := testutil.NewMember(t, &sdk)
+	_, userB := testutil.NewMember(t, &sdk)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "bug"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "customer"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "login"}, nil)
+
 	req := api.CreateTicketRequest{
 		Title:       "User cannot login",
 		Description: "User cannot login to the system",
 		Labels:      []string{"bug", "customer", "login"},
+		AssignedTo:  []int32{userA.Data.ID, userB.Data.ID},
 	}
 
 	var res api.CreateTicketResponse
@@ -35,6 +42,7 @@ func TestCreateTicket_Success(t *testing.T) {
 	require.NotEmpty(t, res.Data.ID)
 	require.Equal(t, req.Title, res.Data.Title)
 	require.Equal(t, req.Labels, res.Data.Labels)
+	require.Equal(t, req.AssignedTo, res.Data.AssignedTo)
 	require.Equal(t, setup.Res().Data.ID, res.Data.CreatedBy.ID)
 }
 
@@ -146,6 +154,12 @@ func TestTickets_FilterByLabel(t *testing.T) {
 		i++
 	}
 
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "bug"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "site"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "feature"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "request"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "api"}, nil)
+
 	createTicket("login not working", []string{"bug"})
 	createTicket("register not working", []string{"bug"})
 	createTicket("wrong validation", []string{"bug"})
@@ -222,7 +236,6 @@ func TestDeleteTicket_Success(t *testing.T) {
 	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
 		Title:       "User cannot login",
 		Description: "User cannot login to the system",
-		Labels:      []string{"bug", "customer", "login"},
 	}, &res)
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
@@ -244,12 +257,11 @@ func TestDeleteTicket_FailWhenUserIsNotAdminOrCreator(t *testing.T) {
 	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
 		Title:       "User cannot login",
 		Description: "User cannot login to the system",
-		Labels:      []string{"bug", "customer", "login"},
 	}, &res)
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
 
-	member := testutil.NewMember(t, &sdk)
+	member, _ := testutil.NewMember(t, &sdk)
 	memberSdk := tEnv.AuthSDK(member.Email, member.Password)
 
 	httpRes, err = memberSdk.DeleteTicket(res.Data.ID)
@@ -264,6 +276,11 @@ func TestPatchTicket_Success(t *testing.T) {
 	tEnv.Start()
 	setup := tEnv.Setup()
 	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "bug"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "customer"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "login"}, nil)
+	sdk.CreateLabel(api.CreateLabelRequest{Name: "500"}, nil)
 
 	var res api.CreateTicketResponse
 	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
@@ -286,10 +303,43 @@ func TestPatchTicket_Success(t *testing.T) {
 	require.Equal(t, http.StatusOK, httpRes.StatusCode)
 
 	require.Equal(t, req.Title, patchRes.Data.Title)
-	require.Equal(t, req.Labels, patchRes.Data.Labels)
+	require.ElementsMatch(t, req.Labels, patchRes.Data.Labels)
 }
 
-func TestPatchTicket_RemoveLabels(t *testing.T) {
+func TestPatchTicket_UpdateAssignedTo(t *testing.T) {
+	t.Parallel()
+
+	tEnv := testutil.NewEnv(t)
+	tEnv.Start()
+	setup := tEnv.Setup()
+	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
+
+	_, userA := testutil.NewMember(t, &sdk)
+	_, userB := testutil.NewMember(t, &sdk)
+	_, userC := testutil.NewMember(t, &sdk)
+
+	var res api.CreateTicketResponse
+	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
+		Title:       "User cannot login",
+		Description: "User cannot login to the system",
+		AssignedTo:  []int32{userA.Data.ID},
+	}, &res)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusCreated, httpRes.StatusCode, "error creating ticket")
+
+	req := api.PatchTicketRequest{
+		AssignedTo: []int32{userB.Data.ID, userC.Data.ID},
+	}
+
+	var patchRes api.PatchTicketResponse
+	httpRes, err = sdk.PatchTicket(res.Data.ID, req, &patchRes)
+	require.NoError(t, err, "error making request")
+	require.Equal(t, http.StatusOK, httpRes.StatusCode)
+
+	require.Equal(t, req.AssignedTo, patchRes.Data.AssignedTo)
+}
+
+func TestTicket_Success(t *testing.T) {
 	t.Parallel()
 
 	tEnv := testutil.NewEnv(t)
@@ -300,35 +350,6 @@ func TestPatchTicket_RemoveLabels(t *testing.T) {
 	sdk.CreateLabel(api.CreateLabelRequest{Name: "bug"}, nil)
 	sdk.CreateLabel(api.CreateLabelRequest{Name: "customer"}, nil)
 	sdk.CreateLabel(api.CreateLabelRequest{Name: "login"}, nil)
-
-	var res api.CreateTicketResponse
-	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
-		Title:       "User cannot login",
-		Description: "User cannot login to the system",
-		Labels:      []string{"bug", "customer", "login"},
-	}, &res)
-	require.NoError(t, err, "error making request")
-	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
-
-	req := api.PatchTicketRequest{
-		Labels: []string{"bug"},
-	}
-
-	var patchRes api.PatchTicketResponse
-	httpRes, err = sdk.PatchTicket(res.Data.ID, req, &patchRes)
-	require.NoError(t, err, "error making request")
-	require.Equal(t, http.StatusOK, httpRes.StatusCode)
-
-	require.Equal(t, req.Labels, patchRes.Data.Labels)
-}
-
-func TestTicket_Success(t *testing.T) {
-	t.Parallel()
-
-	tEnv := testutil.NewEnv(t)
-	tEnv.Start()
-	setup := tEnv.Setup()
-	sdk := tEnv.AuthSDK(setup.Req().Email, setup.Req().Password)
 
 	var res api.CreateTicketResponse
 	httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
@@ -363,7 +384,6 @@ func TestAPI_PatchTicketStatus(t *testing.T) {
 		httpRes, err := sdk.CreateTicket(api.CreateTicketRequest{
 			Title:       "User cannot login",
 			Description: "User cannot login to the system",
-			Labels:      []string{"bug", "customer", "login"},
 		}, &res)
 		require.NoError(t, err, "error making request")
 		require.Equal(t, http.StatusCreated, httpRes.StatusCode)

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -17,15 +18,17 @@ type CreateTicketRequest struct {
 	Title       string   `json:"title" validate:"required,min=3,max=70"`
 	Description string   `json:"description" validate:"required,min=10"`
 	Labels      []string `json:"labels,omitempty"`
+	AssignedTo  []int32  `json:"assigned_to,omitempty"`
 }
 
 type Ticket struct {
-	ID        int32    `json:"id"`
-	Title     string   `json:"title"`
-	Status    string   `json:"status"`
-	Labels    []string `json:"labels"`
-	CreatedBy User     `json:"created_by"`
-	CreatedAt string   `json:"created_at"`
+	ID         int32    `json:"id"`
+	Title      string   `json:"title"`
+	Status     string   `json:"status"`
+	Labels     []string `json:"labels"`
+	AssignedTo []int32  `json:"assigned_to"`
+	CreatedBy  User     `json:"created_by"`
+	CreatedAt  string   `json:"created_at"`
 }
 
 type CreateTicketResponse = Response[Ticket]
@@ -37,11 +40,11 @@ func (server *Server) createTicket(c *gin.Context) {
 	server.jsonReq(c, &req)
 
 	var (
-		ticket sqlc.Ticket
-		err    error
+		newTicket sqlc.GetTicketByIDRow
+		err       error
 	)
 	err = server.db.TX(func(ctx context.Context, qtx *sqlc.Queries, _ pgx.Tx) error {
-		ticket, err = qtx.CreateTicket(ctx, sqlc.CreateTicketParams{
+		t, err := qtx.CreateTicket(ctx, sqlc.CreateTicketParams{
 			Title:     req.Title,
 			CreatedBy: user.ID,
 		})
@@ -51,23 +54,42 @@ func (server *Server) createTicket(c *gin.Context) {
 
 		_, err = qtx.CreateComment(ctx, sqlc.CreateCommentParams{
 			Content:  req.Description,
-			TicketID: ticket.ID,
+			TicketID: t.ID,
 			UserID:   user.ID,
 		})
 		if err != nil {
 			return err
 		}
 
-		if len(req.Labels) > 0 {
+		if req.Labels != nil {
 			for _, labelName := range req.Labels {
 				err = qtx.AssignLabelToTicket(ctx, sqlc.AssignLabelToTicketParams{
-					TicketID:  ticket.ID,
+					TicketID:  t.ID,
 					LabelName: labelName,
 				})
 				if err != nil {
 					return err
 				}
 			}
+		}
+
+		if req.AssignedTo != nil {
+			for _, userID := range req.AssignedTo {
+				a, err := qtx.CreateAssignment(ctx, sqlc.CreateAssignmentParams{
+					TicketID:   t.ID,
+					UserID:     userID,
+					AssignedBy: user.ID,
+				})
+				fmt.Print(a)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		newTicket, err = qtx.GetTicketByID(ctx, t.ID)
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -80,17 +102,18 @@ func (server *Server) createTicket(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, CreateTicketResponse{
 		Data: Ticket{
-			ID:        ticket.ID,
-			Title:     ticket.Title,
-			Status:    string(ticket.Status),
-			Labels:    req.Labels,
-			CreatedAt: ticket.CreatedAt.Time.Format(time.RFC3339),
+			ID:         newTicket.ID,
+			Title:      newTicket.Title,
+			Status:     string(newTicket.Status),
+			Labels:     newTicket.Labels,
+			AssignedTo: newTicket.AssignedTo,
+			CreatedAt:  newTicket.CreatedAt.Time.Format(time.RFC3339),
 			CreatedBy: User{
-				ID:       user.ID,
-				Name:     user.Name,
-				Username: user.Username,
-				Email:    user.Email,
-				Role:     string(user.Role),
+				ID:       newTicket.User.ID,
+				Name:     newTicket.User.Name,
+				Username: newTicket.User.Username,
+				Email:    newTicket.User.Email,
+				Role:     string(newTicket.User.Role),
 			},
 		},
 	})
@@ -159,11 +182,12 @@ func (server *Server) tickets(c *gin.Context) {
 	tickets := make([]Ticket, len(ticketRows))
 	for i, ticket := range ticketRows {
 		tickets[i] = Ticket{
-			ID:        ticket.ID,
-			Title:     ticket.Title,
-			Status:    string(ticket.Status),
-			Labels:    ticket.Labels,
-			CreatedAt: ticket.CreatedAt.Time.Format(time.RFC3339),
+			ID:         ticket.ID,
+			Title:      ticket.Title,
+			Status:     string(ticket.Status),
+			Labels:     ticket.Labels,
+			AssignedTo: ticket.AssignedTo,
+			CreatedAt:  ticket.CreatedAt.Time.Format(time.RFC3339),
 			CreatedBy: User{
 				ID:       ticket.User.ID,
 				Name:     ticket.User.Name,
@@ -223,6 +247,7 @@ type PatchTicketRequest struct {
 	Title       string   `json:"title,omitempty" validate:"omitempty,min=3,max=70"`
 	Description string   `json:"description,omitempty" validate:"omitempty,min=10"`
 	Labels      []string `json:"labels,omitempty"`
+	AssignedTo  []int32  `json:"assignments,omitempty"`
 }
 
 type PatchTicketResponse = Response[Ticket]
@@ -257,37 +282,62 @@ func (server *Server) patchTicket(c *gin.Context) {
 			ticket.Title = req.Title
 		}
 
-		var labelsToUnassign []string
-		for _, oldLabel := range ticket.Labels {
-			if !slices.Contains(req.Labels, oldLabel) {
-				labelsToUnassign = append(labelsToUnassign, oldLabel)
+		if req.Labels != nil {
+			for _, oldLabelName := range ticket.Labels {
+				if !slices.Contains(req.Labels, oldLabelName) {
+					err := qtx.UnassignLabelFromTicket(ctx, sqlc.UnassignLabelFromTicketParams{
+						TicketID:  ticket.ID,
+						LabelName: oldLabelName,
+					})
+					if err != nil {
+						return err
+					}
+				}
+			}
+			for _, newLabelName := range req.Labels {
+				if !slices.Contains(ticket.Labels, newLabelName) {
+					err := qtx.AssignLabelToTicket(ctx, sqlc.AssignLabelToTicketParams{
+						TicketID:  ticket.ID,
+						LabelName: newLabelName,
+					})
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 
-		var labelsToAssign []string
-		for _, newLabel := range req.Labels {
-			if !slices.Contains(ticket.Labels, newLabel) {
-				labelsToAssign = append(labelsToAssign, newLabel)
-			}
-		}
-
-		for _, labelName := range labelsToUnassign {
-			err := qtx.UnassignLabelFromTicket(ctx, sqlc.UnassignLabelFromTicketParams{
-				TicketID:  ticket.ID,
-				LabelName: labelName,
-			})
+		if req.AssignedTo != nil {
+			assignments, err := qtx.GetAssignmentsByTicketID(ctx, ticket.ID)
 			if err != nil {
 				return err
 			}
-		}
-
-		for _, labelName := range labelsToAssign {
-			err := qtx.AssignLabelToTicket(ctx, sqlc.AssignLabelToTicketParams{
-				TicketID:  ticket.ID,
-				LabelName: labelName,
-			})
-			if err != nil {
-				return err
+			assignedUserIDs := make([]int32, len(assignments))
+			for i, assignment := range assignments {
+				assignedUserIDs[i] = assignment.UserID
+			}
+			for _, oldUserID := range assignedUserIDs {
+				if !slices.Contains(req.AssignedTo, oldUserID) {
+					err := qtx.DeleteAssignmentByTicketIDAndUserID(ctx, sqlc.DeleteAssignmentByTicketIDAndUserIDParams{
+						TicketID: ticket.ID,
+						UserID:   int32(oldUserID),
+					})
+					if err != nil {
+						return err
+					}
+				}
+			}
+			for _, newUserID := range req.AssignedTo {
+				if !slices.Contains(assignedUserIDs, newUserID) {
+					_, err := qtx.CreateAssignment(ctx, sqlc.CreateAssignmentParams{
+						TicketID:   ticket.ID,
+						UserID:     int32(newUserID),
+						AssignedBy: user.ID,
+					})
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 
@@ -312,11 +362,12 @@ func (server *Server) patchTicket(c *gin.Context) {
 	case nil:
 		c.JSON(http.StatusOK, PatchTicketResponse{
 			Data: Ticket{
-				ID:        updatedTicket.ID,
-				Title:     updatedTicket.Title,
-				Status:    string(updatedTicket.Status),
-				Labels:    updatedTicket.Labels,
-				CreatedAt: updatedTicket.CreatedAt.Time.Format(time.RFC3339),
+				ID:         updatedTicket.ID,
+				Title:      updatedTicket.Title,
+				Status:     string(updatedTicket.Status),
+				Labels:     updatedTicket.Labels,
+				AssignedTo: updatedTicket.AssignedTo,
+				CreatedAt:  updatedTicket.CreatedAt.Time.Format(time.RFC3339),
 				CreatedBy: User{
 					ID:       createdBy.ID,
 					Name:     createdBy.Name,
@@ -359,11 +410,12 @@ func (server *Server) ticket(c *gin.Context) {
 	case nil:
 		c.JSON(http.StatusOK, PatchTicketResponse{
 			Data: Ticket{
-				ID:        ticketRow.ID,
-				Title:     ticketRow.Title,
-				Status:    string(ticketRow.Status),
-				Labels:    ticketRow.Labels,
-				CreatedAt: ticketRow.CreatedAt.Time.Format(time.RFC3339),
+				ID:         ticketRow.ID,
+				Title:      ticketRow.Title,
+				Status:     string(ticketRow.Status),
+				Labels:     ticketRow.Labels,
+				AssignedTo: ticketRow.AssignedTo,
+				CreatedAt:  ticketRow.CreatedAt.Time.Format(time.RFC3339),
 				CreatedBy: User{
 					ID:       ticketRow.User.ID,
 					Name:     ticketRow.User.Name,
@@ -415,11 +467,12 @@ func (server *Server) patchTicketStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, PatchTicketStatusResponse{
 		Data: Ticket{
-			ID:        updatedTicket.ID,
-			Title:     updatedTicket.Title,
-			Labels:    updatedTicket.Labels,
-			Status:    string(updatedTicket.Status),
-			CreatedAt: updatedTicket.CreatedAt.Time.Format(time.RFC3339),
+			ID:         updatedTicket.ID,
+			Title:      updatedTicket.Title,
+			Labels:     updatedTicket.Labels,
+			Status:     string(updatedTicket.Status),
+			AssignedTo: updatedTicket.AssignedTo,
+			CreatedAt:  updatedTicket.CreatedAt.Time.Format(time.RFC3339),
 			CreatedBy: User{
 				ID:       updatedTicket.User.ID,
 				Name:     updatedTicket.User.Name,

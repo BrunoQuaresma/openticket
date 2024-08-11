@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func NewMember(t *testing.T, sdk *sdk.Client) api.CreateUserRequest {
+func NewMember(t *testing.T, sdk *sdk.Client) (api.CreateUserRequest, api.CreateUserResponse) {
 	req := api.CreateUserRequest{
 		Name:     gofakeit.Name(),
 		Username: gofakeit.Username(),
@@ -25,7 +25,7 @@ func NewMember(t *testing.T, sdk *sdk.Client) api.CreateUserRequest {
 	require.NoError(t, err, "error making request")
 	require.Equal(t, http.StatusCreated, httpRes.StatusCode)
 
-	return req
+	return req, res
 }
 
 func RequireValidationError(t *testing.T, errors []api.ValidationError, field string, validator string) {

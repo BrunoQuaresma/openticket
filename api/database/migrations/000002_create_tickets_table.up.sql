@@ -20,5 +20,6 @@ CREATE TABLE IF NOT EXISTS tickets (
 CREATE TABLE IF NOT EXISTS ticket_labels (
   ticket_id INTEGER REFERENCES tickets (id) ON DELETE CASCADE,
   label_id INTEGER REFERENCES labels (id) ON DELETE CASCADE,
-  PRIMARY KEY (ticket_id, label_id)
+  PRIMARY KEY (ticket_id, label_id),
+  UNIQUE (ticket_id, label_id)
 );
